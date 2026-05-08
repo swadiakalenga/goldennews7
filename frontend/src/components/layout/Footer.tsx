@@ -92,7 +92,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-gray-800">
         <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
-          <p>© {currentYear} GoldenNews7. Tous droits réservés.</p>
+          <p>© {currentYear} GoldenGroup7. Tous droits réservés.</p>
           <div className="flex gap-4">
             <Link href="/confidentialite" className="hover:text-amber-400 transition-colors">
               Confidentialité
