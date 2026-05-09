@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useToast } from "@/components/admin/ToastProvider";
+
+const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
 import {
   createArticle,
   updateArticle,
@@ -327,20 +329,14 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
 
           {/* Content */}
           <div className="bg-gray-900 border border-white/5 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className={labelClass}>Contenu (HTML)</label>
-              <span className="text-xs text-gray-600">{form.content.length} car.</span>
-            </div>
-            <textarea
-              value={form.content}
-              onChange={(e) => set("content", e.target.value)}
-              rows={18}
-              placeholder="<p>Contenu de l'article en HTML…</p>"
-              className={`${fieldClass()} font-mono text-xs leading-relaxed`}
-            />
-            <p className="text-xs text-gray-700 mt-1.5">
-              HTML accepté · un éditeur WYSIWYG sera intégré prochainement.
-            </p>
+            <label className={labelClass}>Contenu</label>
+            <Suspense fallback={<div className="h-64 bg-gray-800 rounded-lg animate-pulse" />}>
+              <RichTextEditor
+                value={form.content}
+                onChange={(html) => set("content", html)}
+                placeholder="Commencez à écrire l'article…"
+              />
+            </Suspense>
           </div>
 
           {/* SEO */}

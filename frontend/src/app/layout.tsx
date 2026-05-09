@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const inter = Inter({
@@ -49,6 +50,11 @@ export const metadata: Metadata = {
     title: "GoldenNews7",
     description: "L'information africaine sans frontières",
   },
+  alternates: {
+    types: {
+      "application/rss+xml": "https://goldennews7.com/feed.xml",
+    },
+  },
 };
 
 export const viewport: Viewport = {
@@ -69,6 +75,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   );

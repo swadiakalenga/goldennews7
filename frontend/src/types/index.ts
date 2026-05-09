@@ -17,8 +17,12 @@ export type Category = (typeof CATEGORIES)[number];
 
 export interface Author {
   name: string;
+  slug?: string;
   avatar?: string;
   role: string;
+  bio?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
 }
 
 export interface Article {

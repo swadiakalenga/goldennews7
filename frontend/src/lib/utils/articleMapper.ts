@@ -27,10 +27,19 @@ export type ArticleRow = {
   cover_image_url: string | null;
   is_featured: boolean;
   is_breaking: boolean;
+  views_count?: number;
   published_at: string | null;
   created_at: string;
   categories: { id: string; name: string; slug: string } | null;
-  authors: { name: string; avatar_url: string | null; role: string | null } | null;
+  authors: {
+    name: string;
+    slug: string | null;
+    avatar_url: string | null;
+    role: string | null;
+    bio: string | null;
+    twitter_url: string | null;
+    facebook_url: string | null;
+  } | null;
 };
 
 function estimateReadingTime(content: string | null | undefined): number {
@@ -53,8 +62,12 @@ export function mapArticleRow(row: ArticleRow): Article {
     category: (row.categories?.name ?? "Actualité") as Category,
     author: {
       name: row.authors?.name ?? "Rédaction",
+      slug: row.authors?.slug ?? undefined,
       avatar: row.authors?.avatar_url ?? undefined,
       role: row.authors?.role ?? "Journaliste",
+      bio: row.authors?.bio ?? undefined,
+      twitterUrl: row.authors?.twitter_url ?? undefined,
+      facebookUrl: row.authors?.facebook_url ?? undefined,
     },
     publishedAt: row.published_at ?? row.created_at,
     readingTime: estimateReadingTime(row.content),
@@ -69,7 +82,7 @@ export function mapArticleRow(row: ArticleRow): Article {
 
 // SELECT strings — light for lists (no content), full for article detail
 export const ARTICLE_SELECT_LIGHT =
-  "id, slug, title, excerpt, cover_image_url, is_featured, is_breaking, published_at, created_at, categories:category_id(id, name, slug), authors:author_id(name, avatar_url, role)";
+  "id, slug, title, excerpt, cover_image_url, is_featured, is_breaking, views_count, published_at, created_at, categories:category_id(id, name, slug), authors:author_id(name, slug, avatar_url, role, bio, twitter_url, facebook_url)";
 
 export const ARTICLE_SELECT_FULL =
-  "id, slug, title, excerpt, content, cover_image_url, is_featured, is_breaking, published_at, created_at, categories:category_id(id, name, slug), authors:author_id(name, avatar_url, role)";
+  "id, slug, title, excerpt, content, cover_image_url, is_featured, is_breaking, views_count, published_at, created_at, categories:category_id(id, name, slug), authors:author_id(name, slug, avatar_url, role, bio, twitter_url, facebook_url)";

@@ -10,6 +10,8 @@ import ArticleContent from "@/components/article/ArticleContent";
 import ArticleShare from "@/components/article/ArticleShare";
 import RelatedArticles from "@/components/article/RelatedArticles";
 import ArticleNewsletter from "@/components/article/ArticleNewsletter";
+import ArticleAuthorCard from "@/components/article/ArticleAuthorCard";
+import ArticleViewTracker from "@/components/article/ArticleViewTracker";
 import ReadingProgressBar from "@/components/ui/ReadingProgressBar";
 import BackToTop from "@/components/ui/BackToTop";
 import JsonLd from "@/components/ui/JsonLd";
@@ -93,6 +95,7 @@ export default async function ArticlePage({
   return (
     <div className="bg-white min-h-screen">
       <ReadingProgressBar />
+      <ArticleViewTracker slug={article.slug} />
       <JsonLd data={jsonLd} />
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
@@ -123,6 +126,10 @@ export default async function ArticlePage({
             <div className="mt-8 pt-6 border-t border-gray-100">
               <p className="text-sm font-semibold text-gray-500 mb-3">Partager cet article</p>
               <ArticleShare title={article.title} orientation="horizontal" />
+            </div>
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">À propos de l&apos;auteur</p>
+              <ArticleAuthorCard author={article.author} />
             </div>
             <div className="mt-10">
               <ArticleNewsletter />

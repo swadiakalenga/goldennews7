@@ -50,6 +50,8 @@ export interface Database {
           slug: string;
           description: string | null;
           color: string | null;
+          sort_order: number;
+          is_active: boolean;
           created_at: string;
         };
         Insert: {
@@ -58,6 +60,8 @@ export interface Database {
           slug: string;
           description?: string | null;
           color?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
           created_at?: string;
         };
         Update: {
@@ -66,6 +70,8 @@ export interface Database {
           slug?: string;
           description?: string | null;
           color?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -79,6 +85,8 @@ export interface Database {
           avatar_url: string | null;
           role: string | null;
           email: string | null;
+          twitter_url: string | null;
+          facebook_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -90,6 +98,8 @@ export interface Database {
           avatar_url?: string | null;
           role?: string | null;
           email?: string | null;
+          twitter_url?: string | null;
+          facebook_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -101,6 +111,8 @@ export interface Database {
           avatar_url?: string | null;
           role?: string | null;
           email?: string | null;
+          twitter_url?: string | null;
+          facebook_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -121,6 +133,7 @@ export interface Database {
           is_breaking: boolean;
           seo_title: string | null;
           seo_description: string | null;
+          views_count: number;
           published_at: string | null;
           created_at: string;
           updated_at: string;
@@ -139,6 +152,7 @@ export interface Database {
           is_breaking?: boolean;
           seo_title?: string | null;
           seo_description?: string | null;
+          views_count?: number;
           published_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -157,6 +171,7 @@ export interface Database {
           is_breaking?: boolean;
           seo_title?: string | null;
           seo_description?: string | null;
+          views_count?: number;
           published_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -178,9 +193,38 @@ export interface Database {
           },
         ];
       };
+      newsletter_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          subscribed_at: string;
+          confirmed: boolean;
+          source: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          subscribed_at?: string;
+          confirmed?: boolean;
+          source?: string | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          subscribed_at?: string;
+          confirmed?: boolean;
+          source?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      increment_article_views: {
+        Args: { article_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

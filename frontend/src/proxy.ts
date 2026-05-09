@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   "/admin/categories",
   "/admin/authors",
   "/admin/media",
+  "/admin/subscribers",
   "/admin/settings",
 ];
 
