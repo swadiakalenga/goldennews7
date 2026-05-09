@@ -1,8 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Only these paths (and their sub-paths) require an authenticated admin.
+// /admin/login is intentionally absent — it must never be guarded.
+const PROTECTED_PREFIXES = [
+  "/admin/dashboard",
+  "/admin/articles",
+  "/admin/categories",
+  "/admin/authors",
+  "/admin/media",
+  "/admin/settings",
+];
+
+function isProtected(pathname: string) {
+  return PROTECTED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+}
+
 export async function proxy(request: NextRequest) {
-  // Keep response mutable so cookie refresh can update it
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -27,30 +43,25 @@ export async function proxy(request: NextRequest) {
   );
 
   // IMPORTANT: never run logic between createServerClient and getUser().
-  // A simple mistake here can cause random session loss.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-  const isAdminRoot = pathname === "/admin";
-  const isLoginPage = pathname === "/admin/login";
-  const isAdminRoute = pathname.startsWith("/admin");
+  const { pathname } = request.nextUrl;
 
-  // Redirect /admin → /admin/dashboard
-  if (isAdminRoot) {
+  // /admin or /admin/ → /admin/dashboard
+  if (pathname === "/admin" || pathname === "/admin/") {
     return NextResponse.redirect(new URL("/admin/dashboard", request.url));
   }
 
-  if (isAdminRoute && !isLoginPage) {
-    // No session → redirect to login
+  // Protected routes: must be an authenticated admin.
+  if (isProtected(pathname)) {
     if (!user) {
       const url = new URL("/admin/login", request.url);
       url.searchParams.set("redirectTo", pathname);
       return NextResponse.redirect(url);
     }
 
-    // Has session — verify admin role in profiles table
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -58,14 +69,14 @@ export async function proxy(request: NextRequest) {
       .single();
 
     if (!profile || profile.role !== "admin") {
-      const url = new URL("/admin/login", request.url);
-      url.searchParams.set("error", "unauthorized");
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(
+        new URL("/admin/login?error=unauthorized", request.url)
+      );
     }
   }
 
-  // Already logged-in admin visiting login page → go to dashboard
-  if (isLoginPage && user) {
+  // Already-authenticated admin on the login page → go to dashboard.
+  if (pathname === "/admin/login" && user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")

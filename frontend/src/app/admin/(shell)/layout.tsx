@@ -10,7 +10,7 @@ export const metadata = {
   },
 };
 
-export default async function AdminLayout({
+export default async function AdminShellLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -20,8 +20,6 @@ export default async function AdminLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Middleware handles the primary auth redirect; this is a safety net for
-  // server-rendered access to the admin shell.
   if (!user) redirect("/admin/login");
 
   const profileResult = (await supabase
