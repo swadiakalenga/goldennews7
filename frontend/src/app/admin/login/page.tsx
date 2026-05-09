@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { Suspense } from "react";
 
 function LoginForm() {
   const router = useRouter();
@@ -26,35 +25,47 @@ function LoginForm() {
 
     try {
       const supabase = getSupabaseBrowserClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
+
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) {
+      if (authError || !authData.user) {
         setError("Identifiants incorrects. Vérifiez votre email et mot de passe.");
         return;
       }
 
-      // Verify admin role before redirecting
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setError("Authentification échouée."); return; }
+      if (process.env.NODE_ENV === "development") {
+        console.log("[admin/login] auth user id:", authData.user.id);
+        console.log("[admin/login] auth user email:", authData.user.email);
+      }
 
-      const profileResult = (await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single()) as unknown as { data: { role: string } | null };
-      const profile = profileResult.data;
+        .select("id,email,role")
+        .eq("id", authData.user.id)
+        .single();
 
-      if (!profile || profile.role !== "admin") {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[admin/login] profile:", profile);
+        console.log("[admin/login] profileError:", profileError);
+      }
+
+      if (profileError || !profile) {
         await supabase.auth.signOut();
-        setError("Accès refusé — ce compte n'est pas administrateur.");
+        setError("Profil administrateur introuvable.");
+        return;
+      }
+
+      if (profile.role !== "admin") {
+        await supabase.auth.signOut();
+        setError("Accès refusé — rôle insuffisant.");
         return;
       }
 
       const redirectTo = searchParams.get("redirectTo") ?? "/admin/dashboard";
-      router.push(redirectTo);
+      router.replace(redirectTo);
       router.refresh();
     } finally {
       setLoading(false);

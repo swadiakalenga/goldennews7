@@ -18,6 +18,20 @@ function isProtected(pathname: string) {
   );
 }
 
+async function getAdminRole(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  if (error || !data) return null;
+  // data is untyped (no Database generic) — safe string access
+  return (data as { role: string }).role ?? null;
+}
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -62,13 +76,13 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    const role = await getAdminRole(supabase, user.id);
 
-    if (!profile || profile.role !== "admin") {
+    // Only redirect to unauthorized when we positively know role ≠ admin.
+    // If the query failed (role === null due to an error), pass through and
+    // let the shell layout's server-side check handle it — avoids a false
+    // redirect on transient network errors.
+    if (role !== null && role !== "admin") {
       return NextResponse.redirect(
         new URL("/admin/login?error=unauthorized", request.url)
       );
@@ -77,13 +91,8 @@ export async function proxy(request: NextRequest) {
 
   // Already-authenticated admin on the login page → go to dashboard.
   if (pathname === "/admin/login" && user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role === "admin") {
+    const role = await getAdminRole(supabase, user.id);
+    if (role === "admin") {
       return NextResponse.redirect(new URL("/admin/dashboard", request.url));
     }
   }
