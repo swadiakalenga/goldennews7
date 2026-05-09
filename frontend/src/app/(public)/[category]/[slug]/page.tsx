@@ -1,6 +1,8 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getArticleBySlug, getArticles, getRelatedArticles } from "@/lib/api/articles";
+import { getArticleBySlug, getRelatedArticles } from "@/lib/api/articles";
 import { categoryToSlug, slugToCategory } from "@/lib/utils";
 import ArticleBreadcrumb from "@/components/article/ArticleBreadcrumb";
 import ArticleHero from "@/components/article/ArticleHero";
@@ -15,14 +17,6 @@ import JsonLd from "@/components/ui/JsonLd";
 interface Params {
   category: string;
   slug: string;
-}
-
-export async function generateStaticParams(): Promise<Params[]> {
-  const articles = await getArticles();
-  return articles.map((a) => ({
-    category: categoryToSlug(a.category),
-    slug: a.slug,
-  }));
 }
 
 const SITE_URL = "https://goldennews7.com";
@@ -49,13 +43,15 @@ export async function generateMetadata({
       url: canonical,
       publishedTime: article.publishedAt,
       authors: [article.author.name],
-      images: [{ url: article.imageUrl, alt: article.imageAlt }],
+      images: article.imageUrl
+        ? [{ url: article.imageUrl, alt: article.imageAlt }]
+        : [],
     },
     twitter: {
       card: "summary_large_image",
       title: article.title,
       description: article.excerpt,
-      images: [article.imageUrl],
+      images: article.imageUrl ? [article.imageUrl] : [],
     },
   };
 }
@@ -80,7 +76,7 @@ export default async function ArticlePage({
     "@type": "NewsArticle",
     headline: article.title,
     description: article.excerpt,
-    image: article.imageUrl,
+    image: article.imageUrl || undefined,
     datePublished: article.publishedAt,
     dateModified: article.publishedAt,
     author: { "@type": "Person", name: article.author.name },

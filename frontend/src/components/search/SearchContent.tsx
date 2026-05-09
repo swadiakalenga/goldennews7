@@ -1,9 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { articles } from "@/data/mock-news";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { mapArticleRow, type ArticleRow, ARTICLE_SELECT_LIGHT } from "@/lib/utils/articleMapper";
 import { categoryToSlug } from "@/lib/utils";
 import ArticleCard from "@/components/ui/ArticleCard";
 import Badge from "@/components/ui/Badge";
@@ -54,18 +55,30 @@ function HighlightCard({ article, query }: { article: Article; query: string }) 
 export default function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
+  const [results, setResults] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.trim().toLowerCase();
-    return articles.filter(
-      (a) =>
-        a.title.toLowerCase().includes(q) ||
-        a.excerpt.toLowerCase().includes(q) ||
-        a.author.name.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q) ||
-        a.tags?.some((t) => t.toLowerCase().includes(q))
-    );
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    setLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    supabase
+      .from("articles")
+      .select(ARTICLE_SELECT_LIGHT)
+      .eq("status", "published")
+      .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        const rows = (data ?? []) as unknown as ArticleRow[];
+        setResults(rows.map(mapArticleRow));
+        setLoading(false);
+      });
   }, [query]);
 
   if (!query.trim()) {
@@ -80,6 +93,20 @@ export default function SearchContent() {
         <p className="text-sm text-gray-400">
           Saisissez un mot-clé dans la barre de recherche pour trouver des articles.
         </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-3" />
+            <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+            <div className="h-4 bg-gray-100 rounded w-full" />
+          </div>
+        ))}
       </div>
     );
   }

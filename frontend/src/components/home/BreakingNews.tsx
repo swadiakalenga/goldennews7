@@ -1,9 +1,22 @@
-import { breakingNewsItems } from "@/data/mock-news";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // Server component — no JS needed; pure CSS marquee with pause-on-hover
-export default function BreakingNews() {
+export default async function BreakingNews() {
+  const supabase = await createServerSupabaseClient();
+  const result = (await supabase
+    .from("articles")
+    .select("title")
+    .eq("is_breaking", true)
+    .eq("status", "published")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(8)) as unknown as { data: { title: string }[] | null };
+
+  const items = result.data?.map((r) => r.title) ?? [];
+  if (items.length === 0) return null;
+
   // Duplicate items so the loop is seamless: animate -50% of total width = one copy
-  const doubled = [...breakingNewsItems, ...breakingNewsItems];
+  const doubled = [...items, ...items];
 
   return (
     <div className="bg-red-600 text-white py-2 overflow-hidden">

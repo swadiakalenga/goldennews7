@@ -1,13 +1,13 @@
 import Link from "next/link";
 import ArticleCard from "@/components/ui/ArticleCard";
-import { navItems, sidebarArticles } from "@/data/mock-news";
+import { navItems } from "@/data/mock-news";
 import type { Article } from "@/types";
 
 interface SidebarProps {
   articles?: Article[];
 }
 
-export default function Sidebar({ articles = sidebarArticles }: SidebarProps) {
+export default function Sidebar({ articles = [] }: SidebarProps) {
   return (
     <aside className="flex flex-col gap-8">
       {/* Newsletter widget */}

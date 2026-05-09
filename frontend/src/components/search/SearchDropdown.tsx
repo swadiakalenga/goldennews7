@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { articles } from "@/data/mock-news";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { mapArticleRow, type ArticleRow, ARTICLE_SELECT_LIGHT } from "@/lib/utils/articleMapper";
 import { categoryToSlug } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import type { Article } from "@/types";
@@ -76,26 +77,28 @@ export default function SearchDropdown({ onClose, autoFocus }: SearchDropdownPro
   }, []);
 
   useEffect(() => {
-    const q = query.trim().toLowerCase();
     setSelectedIndex(-1);
+    const q = query.trim();
     if (!q) {
       setResults([]);
-      // Show recent searches panel if there are any
       setOpen(recentSearches.length > 0);
       return;
     }
-    const filtered = articles
-      .filter(
-        (a) =>
-          a.title.toLowerCase().includes(q) ||
-          a.excerpt.toLowerCase().includes(q) ||
-          a.author.name.toLowerCase().includes(q) ||
-          a.category.toLowerCase().includes(q) ||
-          a.tags?.some((t) => t.toLowerCase().includes(q))
-      )
-      .slice(0, 5);
-    setResults(filtered);
-    setOpen(true);
+
+    const supabase = getSupabaseBrowserClient();
+    supabase
+      .from("articles")
+      .select(ARTICLE_SELECT_LIGHT)
+      .eq("status", "published")
+      .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%`)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        const rows = (data ?? []) as unknown as ArticleRow[];
+        setResults(rows.map(mapArticleRow));
+        setOpen(true);
+      });
   }, [query, recentSearches.length]);
 
   // Close on outside click

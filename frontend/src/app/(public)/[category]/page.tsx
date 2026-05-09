@@ -1,7 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getAllCategorySlugs, slugToCategory } from "@/lib/utils";
-import { getPaginatedArticles, getArticlesByCategory, getFeaturedArticles } from "@/lib/api/articles";
+import { slugToCategory } from "@/lib/utils";
+import { getPaginatedArticles, getArticlesByCategory } from "@/lib/api/articles";
 import CategoryHero from "@/components/category/CategoryHero";
 import ArticleCard from "@/components/ui/ArticleCard";
 import Sidebar from "@/components/home/Sidebar";
@@ -14,10 +16,6 @@ interface Params {
 
 interface SearchParams {
   page?: string;
-}
-
-export function generateStaticParams(): Params[] {
-  return getAllCategorySlugs().map((slug) => ({ category: slug }));
 }
 
 export async function generateMetadata({
@@ -55,13 +53,13 @@ export default async function CategoryPage({
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const PAGE_SIZE = 6;
 
-  const { data: articles, pagination } = await getPaginatedArticles(category, page, PAGE_SIZE);
-  const allCategoryArticles = await getArticlesByCategory(category);
+  const [{ data: articles, pagination }, allCategoryArticles] = await Promise.all([
+    getPaginatedArticles(category, page, PAGE_SIZE),
+    getArticlesByCategory(category),
+  ]);
+
   const featured = allCategoryArticles.find((a) => a.isFeatured) ?? allCategoryArticles[0];
   const gridArticles = articles.filter((a) => a.id !== featured?.id);
-
-  const [globalFeatured] = await getFeaturedArticles();
-  void globalFeatured;
   const sidebarArticles = allCategoryArticles.slice(0, 5);
 
   return (
@@ -112,7 +110,7 @@ export default async function CategoryPage({
             <Pagination page={pagination.page} totalPages={pagination.totalPages} basePath={`/${slug}`} />
           </div>
           <aside className="lg:col-span-1">
-            <Sidebar articles={sidebarArticles.length > 0 ? sidebarArticles : undefined} />
+            <Sidebar articles={sidebarArticles} />
           </aside>
         </div>
       )}
