@@ -5,6 +5,7 @@ import TopBar from "@/components/layout/TopBar";
 import Header from "@/components/layout/Header";
 import Navigation from "@/components/layout/Navigation";
 import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/ui/BottomNav";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -75,8 +76,9 @@ export default function RootLayout({
         <TopBar />
         <Header />
         <Navigation />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-14 md:pb-0">{children}</main>
         <Footer />
+        <BottomNav />
       </body>
     </html>
   );

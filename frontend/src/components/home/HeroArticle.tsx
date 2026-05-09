@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, categoryToSlug } from "@/lib/utils";
 import type { Article } from "@/types";
 
 interface HeroArticleProps {
@@ -11,21 +11,21 @@ interface HeroArticleProps {
 export default function HeroArticle({ article }: HeroArticleProps) {
   return (
     <Link
-      href={`/${article.category.toLowerCase()}/${article.slug}`}
-      className="group relative flex flex-col justify-end overflow-hidden rounded-xl bg-gray-900 min-h-[420px] md:min-h-[500px]"
+      href={`/${categoryToSlug(article.category)}/${article.slug}`}
+      className="group relative flex flex-col justify-end overflow-hidden rounded-xl bg-gray-900 min-h-[420px] md:min-h-[520px]"
     >
       {/* Background image */}
       <Image
         src={article.imageUrl}
         alt={article.imageAlt}
         fill
-        className="object-cover group-hover:scale-105 transition-transform duration-700"
+        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
         priority
         sizes="(max-width: 1024px) 100vw, 66vw"
       />
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+      {/* Gradient overlay — stronger at bottom for readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/10 transition-opacity duration-500" />
 
       {/* Content */}
       <div className="relative z-10 p-6 md:p-8">
@@ -37,7 +37,7 @@ export default function HeroArticle({ article }: HeroArticleProps) {
             </span>
           )}
         </div>
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-white leading-tight group-hover:text-amber-300 transition-colors max-w-2xl">
+        <h1 className="text-shadow-strong text-2xl md:text-3xl lg:text-4xl font-black text-white leading-tight group-hover:text-amber-300 transition-colors duration-300 max-w-2xl">
           {article.title}
         </h1>
         <p className="mt-3 text-sm md:text-base text-gray-300 max-w-xl line-clamp-2">

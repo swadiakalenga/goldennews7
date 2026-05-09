@@ -10,14 +10,14 @@ export default function Pagination({ page, totalPages, basePath }: PaginationPro
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-center gap-2 mt-10">
+    <nav aria-label="Pagination" className="flex items-center justify-center gap-1.5 mt-10">
       <a
         href={page > 1 ? `${basePath}?page=${page - 1}` : undefined}
         aria-disabled={page <= 1}
-        className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
           page <= 1
             ? "text-gray-300 cursor-not-allowed"
-            : "text-gray-600 hover:bg-gray-100"
+            : "text-gray-600 border border-gray-200 hover:border-amber-400 hover:text-amber-600 hover:bg-amber-50 active:scale-95 shadow-sm"
         }`}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,10 +32,10 @@ export default function Pagination({ page, totalPages, basePath }: PaginationPro
             key={p}
             href={`${basePath}?page=${p}`}
             aria-current={p === page ? "page" : undefined}
-            className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold transition-colors ${
+            className={`w-9 h-9 flex items-center justify-center rounded-full text-sm font-bold transition-all duration-200 ${
               p === page
-                ? "bg-amber-500 text-white"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-amber-500 text-white shadow-md ring-2 ring-amber-500/30 scale-110"
+                : "text-gray-600 border border-gray-200 hover:border-amber-400 hover:text-amber-600 hover:bg-amber-50 shadow-sm active:scale-95"
             }`}
           >
             {p}
@@ -46,10 +46,10 @@ export default function Pagination({ page, totalPages, basePath }: PaginationPro
       <a
         href={page < totalPages ? `${basePath}?page=${page + 1}` : undefined}
         aria-disabled={page >= totalPages}
-        className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
           page >= totalPages
             ? "text-gray-300 cursor-not-allowed"
-            : "text-gray-600 hover:bg-gray-100"
+            : "text-gray-600 border border-gray-200 hover:border-amber-400 hover:text-amber-600 hover:bg-amber-50 active:scale-95 shadow-sm"
         }`}
       >
         Suivant

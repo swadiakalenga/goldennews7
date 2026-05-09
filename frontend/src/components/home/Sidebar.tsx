@@ -11,21 +11,25 @@ export default function Sidebar({ articles = sidebarArticles }: SidebarProps) {
   return (
     <aside className="flex flex-col gap-8">
       {/* Newsletter widget */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
-        <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide mb-1">
-          Newsletter
-        </h3>
-        <p className="text-xs text-gray-600 mb-3">
-          Recevez l&apos;essentiel de l&apos;actualité africaine chaque matin.
-        </p>
-        <input
-          type="email"
-          placeholder="votre@email.com"
-          className="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white mb-2"
-        />
-        <button className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
-          S&apos;abonner
-        </button>
+      <div className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl p-5 text-white">
+        <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full" />
+        <div className="absolute -bottom-6 -left-2 w-16 h-16 bg-white/10 rounded-full" />
+        <div className="relative">
+          <h3 className="text-sm font-black uppercase tracking-wide mb-1">
+            Newsletter
+          </h3>
+          <p className="text-xs text-amber-100 mb-3 leading-relaxed">
+            Recevez l&apos;essentiel de l&apos;actualité africaine chaque matin.
+          </p>
+          <input
+            type="email"
+            placeholder="votre@email.com"
+            className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-white/60 bg-white/20 placeholder-amber-200 text-white border border-white/30 mb-2"
+          />
+          <button className="w-full py-2 bg-white hover:bg-amber-50 text-amber-600 text-sm font-black rounded-lg transition-colors tracking-wide">
+            S&apos;abonner
+          </button>
+        </div>
       </div>
 
       {/* Most read */}
@@ -36,10 +40,10 @@ export default function Sidebar({ articles = sidebarArticles }: SidebarProps) {
             Les plus lus
           </h3>
         </div>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
           {articles.slice(0, 5).map((article, i) => (
-            <div key={article.id} className="flex gap-3 items-start">
-              <span className="shrink-0 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black text-gray-400">
+            <div key={article.id} className="flex gap-3 items-start group/item hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-all duration-200 cursor-pointer">
+              <span className="shrink-0 w-7 h-7 rounded-full bg-gray-100 group-hover/item:bg-amber-100 flex items-center justify-center text-xs font-black text-gray-400 group-hover/item:text-amber-600 transition-colors mt-0.5">
                 {i + 1}
               </span>
               <ArticleCard article={article} variant="compact" />

@@ -8,6 +8,9 @@ import ArticleContent from "@/components/article/ArticleContent";
 import ArticleShare from "@/components/article/ArticleShare";
 import RelatedArticles from "@/components/article/RelatedArticles";
 import ArticleNewsletter from "@/components/article/ArticleNewsletter";
+import ReadingProgressBar from "@/components/ui/ReadingProgressBar";
+import BackToTop from "@/components/ui/BackToTop";
+import JsonLd from "@/components/ui/JsonLd";
 
 interface Params {
   category: string;
@@ -22,22 +25,28 @@ export async function generateStaticParams(): Promise<Params[]> {
   }));
 }
 
+const SITE_URL = "https://goldennews7.com";
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<Params>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { category: categorySlug, slug } = await params;
   const article = await getArticleBySlug(slug);
   if (!article) return { title: "Article non trouvé | GoldenNews7" };
+
+  const canonical = `${SITE_URL}/${categorySlug}/${slug}`;
 
   return {
     title: article.title,
     description: article.excerpt,
+    alternates: { canonical },
     openGraph: {
       title: article.title,
       description: article.excerpt,
       type: "article",
+      url: canonical,
       publishedTime: article.publishedAt,
       authors: [article.author.name],
       images: [{ url: article.imageUrl, alt: article.imageAlt }],
@@ -66,8 +75,29 @@ export default async function ArticlePage({
 
   const related = await getRelatedArticles(article, 3);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: article.title,
+    description: article.excerpt,
+    image: article.imageUrl,
+    datePublished: article.publishedAt,
+    dateModified: article.publishedAt,
+    author: { "@type": "Person", name: article.author.name },
+    publisher: {
+      "@type": "Organization",
+      name: "GoldenNews7",
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
+    },
+    url: `${SITE_URL}/${categorySlug}/${article.slug}`,
+    inLanguage: "fr-FR",
+    isAccessibleForFree: true,
+  };
+
   return (
     <div className="bg-white min-h-screen">
+      <ReadingProgressBar />
+      <JsonLd data={jsonLd} />
       <div className="container mx-auto px-4 py-6">
         {/* Breadcrumb */}
         <div className="mb-6">
@@ -128,6 +158,7 @@ export default async function ArticlePage({
               <RelatedArticles articles={related} />
             </div>
           </article>
+          <BackToTop />
 
           {/* Sticky desktop sidebar */}
           <aside className="hidden lg:flex flex-col items-center gap-3 shrink-0 w-12 sticky top-24 self-start">

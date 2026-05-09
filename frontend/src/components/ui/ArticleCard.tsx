@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
-import { formatDateShort } from "@/lib/utils";
+import { formatDateShort, categoryToSlug } from "@/lib/utils";
 import type { Article } from "@/types";
 
 interface ArticleCardProps {
@@ -16,7 +16,7 @@ export default function ArticleCard({
   if (variant === "horizontal") {
     return (
       <Link
-        href={`/${article.category.toLowerCase()}/${article.slug}`}
+        href={`/${categoryToSlug(article.category)}/${article.slug}`}
         className="group flex gap-4 items-start"
       >
         <div className="relative shrink-0 w-24 h-20 rounded overflow-hidden">
@@ -44,7 +44,7 @@ export default function ArticleCard({
   if (variant === "compact") {
     return (
       <Link
-        href={`/${article.category.toLowerCase()}/${article.slug}`}
+        href={`/${categoryToSlug(article.category)}/${article.slug}`}
         className="group block border-b border-gray-100 pb-3 last:border-0 last:pb-0"
       >
         <Badge category={article.category} />
@@ -61,7 +61,7 @@ export default function ArticleCard({
   return (
     <Link
       href={`/${article.category.toLowerCase()}/${article.slug}`}
-      className="group flex flex-col bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100"
+      className="group flex flex-col bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-100"
     >
       <div className="relative h-48 w-full overflow-hidden">
         <Image

@@ -1,47 +1,43 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
 import { breakingNewsItems } from "@/data/mock-news";
 
+// Server component — no JS needed; pure CSS marquee with pause-on-hover
 export default function BreakingNews() {
-  const [index, setIndex] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      setIndex((prev) => (prev + 1) % breakingNewsItems.length);
-    }, 5000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+  // Duplicate items so the loop is seamless: animate -50% of total width = one copy
+  const doubled = [...breakingNewsItems, ...breakingNewsItems];
 
   return (
     <div className="bg-red-600 text-white py-2 overflow-hidden">
-      <div className="container mx-auto px-4 flex items-center gap-4">
-        <span className="shrink-0 text-xs font-black uppercase tracking-widest bg-white text-red-600 px-2.5 py-0.5 rounded animate-pulse">
-          Urgent
-        </span>
-        <div className="overflow-hidden flex-1">
-          <p
-            key={index}
-            className="text-sm font-medium whitespace-nowrap truncate animate-fade-in"
+      <div className="flex items-center gap-0">
+        {/* Static "URGENT" badge */}
+        <div className="shrink-0 flex items-center pl-4 pr-3 z-10 bg-red-600">
+          <span
+            className="text-[10px] font-black uppercase tracking-widest bg-white text-red-600 px-2.5 py-1 rounded"
+            style={{ boxShadow: "0 0 10px rgba(255,255,255,0.5)" }}
           >
-            {breakingNewsItems[index]}
-          </p>
+            Urgent
+          </span>
         </div>
-        <div className="hidden sm:flex items-center gap-1 shrink-0">
-          {breakingNewsItems.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setIndex(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === index ? "bg-white" : "bg-red-400"
-              }`}
-              aria-label={`Alerte ${i + 1}`}
-            />
-          ))}
+
+        {/* Gradient fade on left edge */}
+        <div className="shrink-0 w-6 bg-gradient-to-r from-red-600 to-transparent z-10" />
+
+        {/* Infinite marquee track */}
+        <div className="overflow-hidden flex-1 relative">
+          <div className="animate-marquee">
+            {doubled.map((item, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center shrink-0 text-sm font-medium pr-16 whitespace-nowrap"
+              >
+                {item}
+                <span className="ml-16 text-red-300 text-xs" aria-hidden="true">◆</span>
+              </span>
+            ))}
+          </div>
         </div>
+
+        {/* Gradient fade on right edge */}
+        <div className="shrink-0 w-8 bg-gradient-to-l from-red-600 to-transparent z-10" />
       </div>
     </div>
   );
