@@ -97,7 +97,7 @@ export default async function ArticlePage({
   return (
     <div className="bg-white min-h-screen">
       <ReadingProgressBar />
-      <ArticleViewTracker slug={article.slug} />
+      <ArticleViewTracker articleId={article.id} slug={article.slug} />
       <JsonLd data={jsonLd} />
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">

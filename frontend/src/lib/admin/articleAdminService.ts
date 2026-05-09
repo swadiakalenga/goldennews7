@@ -27,6 +27,8 @@ export interface ArticleListOptions {
   q?: string;
   page?: number;
   pageSize?: number;
+  sortBy?: "created_at" | "views_count";
+  sortAsc?: boolean;
 }
 
 export interface ArticleListResult {
@@ -60,7 +62,7 @@ export async function getAdminStats(): Promise<AdminStats> {
 export async function getAdminArticles(
   opts: ArticleListOptions = {}
 ): Promise<ArticleListResult> {
-  const { status, q, page = 1, pageSize = 20 } = opts;
+  const { status, q, page = 1, pageSize = 20, sortBy = "created_at", sortAsc = false } = opts;
   const supabase = getSupabaseBrowserClient();
 
   let query = supabase
@@ -69,7 +71,7 @@ export async function getAdminArticles(
       "*, categories:category_id(id, name, slug), authors:author_id(id, name)",
       { count: "exact" }
     )
-    .order("created_at", { ascending: false })
+    .order(sortBy, { ascending: sortAsc })
     .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (status && status !== "all") {

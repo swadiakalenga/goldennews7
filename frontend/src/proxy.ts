@@ -14,6 +14,7 @@ const PROTECTED_PREFIXES = [
   "/admin/settings",
   "/admin/pages",
   "/admin/activity",
+  "/admin/analytics",
 ];
 
 function isProtected(pathname: string) {

@@ -33,6 +33,7 @@ export default function AdminArticlesPage() {
   const [status, setStatus] = useState("all");
   const [q, setQ] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [sortBy, setSortBy] = useState<"created_at" | "views_count">("created_at");
 
   const [deleteTarget, setDeleteTarget] = useState<ArticleWithRelations | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -42,7 +43,7 @@ export default function AdminArticlesPage() {
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAdminArticles({ status, q, page, pageSize: PAGE_SIZE });
+      const result = await getAdminArticles({ status, q, page, pageSize: PAGE_SIZE, sortBy });
       setArticles(result.data);
       setCount(result.count);
     } catch {
@@ -50,7 +51,7 @@ export default function AdminArticlesPage() {
     } finally {
       setLoading(false);
     }
-  }, [status, q, page, toast]);
+  }, [status, q, page, toast, sortBy]);
 
   useEffect(() => {
     fetchArticles();
@@ -154,6 +155,22 @@ export default function AdminArticlesPage() {
             </button>
           ))}
         </div>
+
+        <button
+          onClick={() => { setSortBy((s) => s === "created_at" ? "views_count" : "created_at"); setPage(1); }}
+          title={sortBy === "views_count" ? "Trier par date" : "Trier par vues"}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
+            sortBy === "views_count"
+              ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+              : "bg-gray-900 border-white/5 text-gray-400 hover:text-white"
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          {sortBy === "views_count" ? "Par vues" : "Vues"}
+        </button>
       </div>
 
       {/* Table */}
@@ -169,6 +186,7 @@ export default function AdminArticlesPage() {
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 hidden lg:table-cell">Une</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 hidden lg:table-cell">Urgent</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 hidden md:table-cell">Date</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 hidden lg:table-cell text-right">Vues</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Actions</th>
               </tr>
             </thead>
@@ -177,7 +195,7 @@ export default function AdminArticlesPage() {
                 <TableSkeleton rows={8} cols={8} />
               ) : articles.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-20 text-center text-gray-500 text-sm">
+                  <td colSpan={9} className="py-20 text-center text-gray-500 text-sm">
                     Aucun article trouvé.
                   </td>
                 </tr>
@@ -225,6 +243,11 @@ export default function AdminArticlesPage() {
                         month: "short",
                         year: "numeric",
                       })}
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell text-right">
+                      <span className="text-xs font-semibold text-gray-400 tabular-nums">
+                        {(article.views_count ?? 0).toLocaleString("fr-FR")}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
