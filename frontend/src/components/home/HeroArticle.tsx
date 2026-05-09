@@ -15,14 +15,16 @@ export default function HeroArticle({ article }: HeroArticleProps) {
       className="group relative flex flex-col justify-end overflow-hidden rounded-xl bg-gray-900 min-h-[420px] md:min-h-[520px]"
     >
       {/* Background image */}
-      <Image
-        src={article.imageUrl}
-        alt={article.imageAlt}
-        fill
-        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-        priority
-        sizes="(max-width: 1024px) 100vw, 66vw"
-      />
+      {article.imageUrl && (
+        <Image
+          src={article.imageUrl}
+          alt={article.imageAlt}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+          priority
+          sizes="(max-width: 1024px) 100vw, 66vw"
+        />
+      )}
 
       {/* Gradient overlay — stronger at bottom for readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/10 transition-opacity duration-500" />

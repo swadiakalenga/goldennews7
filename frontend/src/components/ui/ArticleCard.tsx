@@ -19,14 +19,16 @@ export default function ArticleCard({
         href={`/${categoryToSlug(article.category)}/${article.slug}`}
         className="group flex gap-4 items-start"
       >
-        <div className="relative shrink-0 w-24 h-20 rounded overflow-hidden">
-          <Image
-            src={article.imageUrl}
-            alt={article.imageAlt}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            sizes="96px"
-          />
+        <div className="relative shrink-0 w-24 h-20 rounded overflow-hidden bg-gray-100">
+          {article.imageUrl && (
+            <Image
+              src={article.imageUrl}
+              alt={article.imageAlt}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              sizes="96px"
+            />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <Badge category={article.category} />
@@ -63,14 +65,16 @@ export default function ArticleCard({
       href={`/${article.category.toLowerCase()}/${article.slug}`}
       className="group flex flex-col bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-100"
     >
-      <div className="relative h-48 w-full overflow-hidden">
-        <Image
-          src={article.imageUrl}
-          alt={article.imageAlt}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+      <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+        {article.imageUrl && (
+          <Image
+            src={article.imageUrl}
+            alt={article.imageAlt}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        )}
         {article.isBreaking && (
           <div className="absolute top-2 left-2">
             <span className="bg-red-600 text-white text-xs font-bold uppercase px-2 py-0.5 rounded animate-pulse">

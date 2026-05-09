@@ -1,5 +1,21 @@
 import type { Article, Category } from "@/types";
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const STORAGE_BUCKET = "article-images";
+
+/**
+ * Ensure cover_image_url is always a full public URL.
+ * - null / empty  → empty string (caller guards the <Image> render)
+ * - already "http…" → returned as-is (correct format from uploadService)
+ * - bare storage path → prefixed with the Supabase Storage public URL
+ *   (handles legacy rows that stored just the path, e.g. "covers/file.jpg")
+ */
+function toPublicImageUrl(coverUrl: string | null): string {
+  if (!coverUrl) return "";
+  if (coverUrl.startsWith("http")) return coverUrl;
+  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${coverUrl}`;
+}
+
 // Shape returned by all Supabase article queries that include joins.
 // content is optional so both light (list) and full (detail) queries can use it.
 export type ArticleRow = {
@@ -42,7 +58,7 @@ export function mapArticleRow(row: ArticleRow): Article {
     },
     publishedAt: row.published_at ?? row.created_at,
     readingTime: estimateReadingTime(row.content),
-    imageUrl: row.cover_image_url ?? "",
+    imageUrl: toPublicImageUrl(row.cover_image_url),
     imageAlt: row.title,
     isFeatured: row.is_featured,
     isBreaking: row.is_breaking,

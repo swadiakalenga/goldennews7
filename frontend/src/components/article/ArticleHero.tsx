@@ -51,16 +51,18 @@ export default function ArticleHero({ article }: ArticleHeroProps) {
       </div>
 
       {/* Hero image */}
-      <div className="relative w-full aspect-video rounded-xl overflow-hidden">
-        <Image
-          src={article.imageUrl}
-          alt={article.imageAlt}
-          fill
-          className="object-cover"
-          priority
-          sizes="(max-width: 1024px) 100vw, 800px"
-        />
-      </div>
+      {article.imageUrl && (
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden">
+          <Image
+            src={article.imageUrl}
+            alt={article.imageAlt}
+            fill
+            className="object-cover"
+            priority
+            sizes="(max-width: 1024px) 100vw, 800px"
+          />
+        </div>
+      )}
     </div>
   );
 }
