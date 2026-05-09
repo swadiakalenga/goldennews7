@@ -29,7 +29,6 @@ function SearchSkeleton() {
 export default function RecherchePage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
-      {/* Page header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-1 h-6 bg-amber-500 rounded-full" />
@@ -38,11 +37,8 @@ export default function RecherchePage() {
         <p className="text-sm text-gray-500 mb-5">
           Recherchez parmi tous les articles de GoldenNews7
         </p>
-        {/* Large search bar */}
         <SearchDropdown autoFocus />
       </div>
-
-      {/* Results — wrapped in Suspense because SearchContent uses useSearchParams() */}
       <Suspense fallback={<SearchSkeleton />}>
         <SearchContent />
       </Suspense>

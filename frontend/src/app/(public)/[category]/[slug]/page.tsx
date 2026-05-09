@@ -99,72 +99,45 @@ export default async function ArticlePage({
       <ReadingProgressBar />
       <JsonLd data={jsonLd} />
       <div className="container mx-auto px-4 py-6">
-        {/* Breadcrumb */}
         <div className="mb-6">
           <ArticleBreadcrumb category={article.category} title={article.title} />
         </div>
-
-        {/* Two-column layout: article + sticky sidebar */}
         <div className="flex gap-10 items-start">
-          {/* Main article column */}
           <article className="min-w-0 flex-1 max-w-3xl">
             <ArticleHero article={article} />
-
-            {/* Mobile share */}
             <div className="mt-6 lg:hidden">
               <ArticleShare title={article.title} orientation="horizontal" />
             </div>
-
-            {/* Article body */}
             {article.content ? (
               <div className="mt-8">
                 <ArticleContent content={article.content} />
               </div>
             ) : (
-              <p className="mt-8 text-gray-500 italic">
-                Contenu complet bientôt disponible.
-              </p>
+              <p className="mt-8 text-gray-500 italic">Contenu complet bientôt disponible.</p>
             )}
-
-            {/* Tags */}
             {article.tags && article.tags.length > 0 && (
               <div className="mt-8 flex flex-wrap gap-2">
                 {article.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium"
-                  >
+                  <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium">
                     #{tag}
                   </span>
                 ))}
               </div>
             )}
-
-            {/* Bottom share */}
             <div className="mt-8 pt-6 border-t border-gray-100">
-              <p className="text-sm font-semibold text-gray-500 mb-3">
-                Partager cet article
-              </p>
+              <p className="text-sm font-semibold text-gray-500 mb-3">Partager cet article</p>
               <ArticleShare title={article.title} orientation="horizontal" />
             </div>
-
-            {/* Newsletter CTA */}
             <div className="mt-10">
               <ArticleNewsletter />
             </div>
-
-            {/* Related articles */}
             <div className="mt-12">
               <RelatedArticles articles={related} />
             </div>
           </article>
           <BackToTop />
-
-          {/* Sticky desktop sidebar */}
           <aside className="hidden lg:flex flex-col items-center gap-3 shrink-0 w-12 sticky top-24 self-start">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest rotate-0 mb-2">
-              Partager
-            </p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest rotate-0 mb-2">Partager</p>
             <ArticleShare title={article.title} orientation="vertical" />
           </aside>
         </div>

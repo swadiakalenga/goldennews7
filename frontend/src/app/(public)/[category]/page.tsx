@@ -61,24 +61,18 @@ export default async function CategoryPage({
   const gridArticles = articles.filter((a) => a.id !== featured?.id);
 
   const [globalFeatured] = await getFeaturedArticles();
+  void globalFeatured;
   const sidebarArticles = allCategoryArticles.slice(0, 5);
 
   return (
     <div className="container mx-auto px-4 py-6">
-      {/* Category hero */}
       <CategoryHero category={category} count={pagination.total} />
 
       {articles.length === 0 ? (
-        /* Empty state */
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
             </svg>
           </div>
           <h2 className="text-lg font-bold text-gray-700 mb-1">Aucun article disponible</h2>
@@ -88,9 +82,7 @@ export default async function CategoryPage({
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Featured article for this category */}
             {featured && page === 1 && (
               <div>
                 <div className="flex items-center gap-3 mb-4">
@@ -102,8 +94,6 @@ export default async function CategoryPage({
                 <HeroArticle article={featured} />
               </div>
             )}
-
-            {/* Articles grid */}
             {gridArticles.length > 0 && (
               <div>
                 <div className="flex items-center gap-3 mb-4">
@@ -119,16 +109,8 @@ export default async function CategoryPage({
                 </div>
               </div>
             )}
-
-            {/* Pagination */}
-            <Pagination
-              page={pagination.page}
-              totalPages={pagination.totalPages}
-              basePath={`/${slug}`}
-            />
+            <Pagination page={pagination.page} totalPages={pagination.totalPages} basePath={`/${slug}`} />
           </div>
-
-          {/* Sidebar */}
           <aside className="lg:col-span-1">
             <Sidebar articles={sidebarArticles.length > 0 ? sidebarArticles : undefined} />
           </aside>
