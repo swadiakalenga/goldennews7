@@ -12,6 +12,8 @@ const PROTECTED_PREFIXES = [
   "/admin/media",
   "/admin/subscribers",
   "/admin/settings",
+  "/admin/pages",
+  "/admin/activity",
 ];
 
 function isProtected(pathname: string) {

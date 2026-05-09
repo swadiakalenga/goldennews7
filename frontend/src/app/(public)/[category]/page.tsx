@@ -2,13 +2,17 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { slugToCategory } from "@/lib/utils";
-import { getPaginatedArticles, getArticlesByCategory } from "@/lib/api/articles";
+import { getCategoryBySlug } from "@/lib/api/categories";
+import {
+  getArticlesByCategoryId,
+  getPaginatedArticlesByCategoryId,
+} from "@/lib/api/articles";
 import CategoryHero from "@/components/category/CategoryHero";
 import ArticleCard from "@/components/ui/ArticleCard";
 import Sidebar from "@/components/home/Sidebar";
 import HeroArticle from "@/components/home/HeroArticle";
 import Pagination from "@/components/ui/Pagination";
+import type { Category } from "@/types";
 
 interface Params {
   category: string;
@@ -24,15 +28,15 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { category: slug } = await params;
-  const category = slugToCategory(slug);
-  if (!category) return { title: "Catégorie introuvable | GoldenNews7" };
+  const cat = await getCategoryBySlug(slug);
+  if (!cat) return { title: "Catégorie introuvable | GoldenNews7" };
 
   return {
-    title: `${category} — Actualités | GoldenNews7`,
-    description: `Toute l'actualité ${category} sur GoldenNews7 — analyses, reportages et informations en continu.`,
+    title: `${cat.name} — Actualités | GoldenNews7`,
+    description: cat.description ?? `Toute l'actualité ${cat.name} sur GoldenNews7 — analyses, reportages et informations en continu.`,
     openGraph: {
-      title: `${category} | GoldenNews7`,
-      description: `Toute l'actualité ${category} en continu.`,
+      title: `${cat.name} | GoldenNews7`,
+      description: cat.description ?? `Toute l'actualité ${cat.name} en continu.`,
     },
   };
 }
@@ -47,15 +51,15 @@ export default async function CategoryPage({
   const { category: slug } = await params;
   const { page: pageParam } = await searchParams;
 
-  const category = slugToCategory(slug);
-  if (!category) notFound();
+  const cat = await getCategoryBySlug(slug);
+  if (!cat) notFound();
 
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const PAGE_SIZE = 6;
 
   const [{ data: articles, pagination }, allCategoryArticles] = await Promise.all([
-    getPaginatedArticles(category, page, PAGE_SIZE),
-    getArticlesByCategory(category),
+    getPaginatedArticlesByCategoryId(cat.id, page, PAGE_SIZE),
+    getArticlesByCategoryId(cat.id),
   ]);
 
   const featured = allCategoryArticles.find((a) => a.isFeatured) ?? allCategoryArticles[0];
@@ -64,7 +68,7 @@ export default async function CategoryPage({
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <CategoryHero category={category} count={pagination.total} />
+      <CategoryHero category={cat.name as Category} count={pagination.total} />
 
       {articles.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -75,7 +79,7 @@ export default async function CategoryPage({
           </div>
           <h2 className="text-lg font-bold text-gray-700 mb-1">Aucun article disponible</h2>
           <p className="text-sm text-gray-400">
-            Les articles de la rubrique {category} seront bientôt disponibles.
+            Les articles de la rubrique {cat.name} seront bientôt disponibles.
           </p>
         </div>
       ) : (
@@ -86,7 +90,7 @@ export default async function CategoryPage({
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-1 h-5 bg-amber-500 rounded-full" />
                   <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
-                    À la une — {category}
+                    À la une — {cat.name}
                   </h2>
                 </div>
                 <HeroArticle article={featured} />

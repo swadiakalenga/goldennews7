@@ -40,11 +40,13 @@ export async function getHomepageConfig(): Promise<HomepageSection[]> {
 
   const result: HomepageSection[] = await Promise.all(
     sections.map(async (section) => {
+      const now = new Date().toISOString();
       const { data: slots } = await supabase
         .from("homepage_slots")
         .select(SLOT_SELECT)
         .eq("section_id", section.id)
         .eq("is_active", true)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("position");
 
       const mapped = ((slots ?? []) as unknown as Array<{

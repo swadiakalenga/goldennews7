@@ -43,3 +43,22 @@ export async function getPaginatedArticles(
   const pagination: PaginationInfo = { page, pageSize, total, totalPages };
   return { data: articles, pagination };
 }
+
+export async function getArticlesByCategoryId(categoryId: string): Promise<Article[]> {
+  return ArticleService.findByCategoryId(categoryId);
+}
+
+export async function getPaginatedArticlesByCategoryId(
+  categoryId: string,
+  page: number,
+  pageSize = 6
+): Promise<PaginatedArticles> {
+  const { articles, total } = await ArticleService.findPaginatedByCategoryId(categoryId, page, pageSize);
+  const totalPages = Math.ceil(total / pageSize);
+  const pagination: PaginationInfo = { page, pageSize, total, totalPages };
+  return { data: articles, pagination };
+}
+
+export async function getArticleBySlugAnyStatus(slug: string): Promise<Article | null> {
+  return ArticleService.findBySlugAnyStatus(slug);
+}

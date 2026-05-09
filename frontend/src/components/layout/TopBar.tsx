@@ -1,17 +1,19 @@
-export default function TopBar() {
+export default function TopBar({
+  socials = [
+    { label: "Facebook", href: "#" },
+    { label: "Twitter / X", href: "#" },
+    { label: "YouTube", href: "#" },
+    { label: "Telegram", href: "#" },
+  ],
+}: {
+  socials?: { label: string; href: string }[];
+}) {
   const dateStr = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   }).format(new Date());
-
-  const socials = [
-    { label: "Facebook", href: "#" },
-    { label: "Twitter / X", href: "#" },
-    { label: "YouTube", href: "#" },
-    { label: "Telegram", href: "#" },
-  ];
 
   return (
     <div className="bg-gray-950 text-gray-400 text-[11px] py-1.5">

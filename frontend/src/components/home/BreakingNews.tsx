@@ -3,11 +3,13 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 // Server component — no JS needed; pure CSS marquee with pause-on-hover
 export default async function BreakingNews() {
   const supabase = await createServerSupabaseClient();
+  const now = new Date().toISOString();
   const result = (await supabase
     .from("articles")
     .select("title")
     .eq("is_breaking", true)
-    .eq("status", "published")
+    .or(`status.eq.published,and(status.eq.scheduled,scheduled_at.lte.${now})`)
+    .or(`breaking_expires_at.is.null,breaking_expires_at.gt.${now}`)
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(8)) as unknown as { data: { title: string }[] | null };

@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getArticleBySlug, getRelatedArticles } from "@/lib/api/articles";
-import { categoryToSlug, slugToCategory } from "@/lib/utils";
+import { getCategoryBySlug } from "@/lib/api/categories";
+import { categoryToSlug } from "@/lib/utils";
 import ArticleBreadcrumb from "@/components/article/ArticleBreadcrumb";
 import ArticleHero from "@/components/article/ArticleHero";
 import ArticleContent from "@/components/article/ArticleContent";
@@ -65,8 +66,9 @@ export default async function ArticlePage({
 }) {
   const { category: categorySlug, slug } = await params;
 
-  const category = slugToCategory(categorySlug);
-  if (!category) notFound();
+  // Validate category slug against DB (not hardcoded map)
+  const dbCategory = await getCategoryBySlug(categorySlug);
+  if (!dbCategory) notFound();
 
   const article = await getArticleBySlug(slug);
   if (!article || categoryToSlug(article.category) !== categorySlug) notFound();

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { navItems } from "@/data/mock-news";
+import type { NavItem } from "@/types";
 
 const drawerVariants = {
   closed: { opacity: 0, x: "-100%" },
@@ -26,7 +26,7 @@ const backdropVariants = {
   exit: { opacity: 0, transition: { duration: 0.2 } },
 };
 
-export default function Navigation() {
+export default function Navigation({ navItems }: { navItems: NavItem[] }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 

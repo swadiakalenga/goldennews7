@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SearchDropdown from "@/components/search/SearchDropdown";
 
-export default function Header() {
+export default function Header({ tagline }: { tagline?: string }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -41,9 +41,11 @@ export default function Header() {
         </Link>
 
         {/* Tagline */}
-        <p className="hidden xl:block text-[11px] text-gray-400 italic border-l border-gray-200 pl-4 shrink-0 leading-tight">
-          L&apos;information africaine sans frontières
-        </p>
+        {(tagline ?? "L'information africaine sans frontières") && (
+          <p className="hidden xl:block text-[11px] text-gray-400 italic border-l border-gray-200 pl-4 shrink-0 leading-tight">
+            {tagline ?? "L'information africaine sans frontières"}
+          </p>
+        )}
 
         {/* Desktop search */}
         <div className="flex-1 max-w-sm hidden md:block">

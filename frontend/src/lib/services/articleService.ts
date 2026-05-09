@@ -1,8 +1,6 @@
 /**
  * ArticleService — Data access layer (server-only).
- * Reads published articles from Supabase.
- * Do NOT import from client components; use @/lib/utils/articleMapper directly
- * with getSupabaseBrowserClient() for client-side queries instead.
+ * Public queries show: published OR (scheduled AND scheduled_at <= now()).
  */
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
@@ -12,6 +10,15 @@ import {
   ARTICLE_SELECT_FULL,
 } from "@/lib/utils/articleMapper";
 import type { Article, Category } from "@/types";
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+// Filter string for publicly-visible articles
+function publicFilter() {
+  return `status.eq.published,and(status.eq.scheduled,scheduled_at.lte.${nowIso()})`;
+}
 
 async function getCategoryId(category: Category): Promise<string | null> {
   const supabase = await createServerSupabaseClient();
@@ -29,7 +36,7 @@ export const ArticleService = {
     const result = (await supabase
       .from("articles")
       .select(ARTICLE_SELECT_LIGHT)
-      .eq("status", "published")
+      .or(publicFilter())
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })) as unknown as {
       data: ArticleRow[] | null;
@@ -43,7 +50,7 @@ export const ArticleService = {
       .from("articles")
       .select(ARTICLE_SELECT_FULL)
       .eq("slug", slug)
-      .eq("status", "published")
+      .or(publicFilter())
       .maybeSingle()) as unknown as { data: ArticleRow | null };
     if (!result.data) return null;
     return mapArticleRow(result.data);
@@ -57,7 +64,22 @@ export const ArticleService = {
       .from("articles")
       .select(ARTICLE_SELECT_LIGHT)
       .eq("category_id", categoryId)
-      .eq("status", "published")
+      .or(publicFilter())
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })) as unknown as {
+      data: ArticleRow[] | null;
+    };
+    return (result.data ?? []).map(mapArticleRow);
+  },
+
+  // Direct category ID lookup — used by dynamic category pages
+  async findByCategoryId(categoryId: string): Promise<Article[]> {
+    const supabase = await createServerSupabaseClient();
+    const result = (await supabase
+      .from("articles")
+      .select(ARTICLE_SELECT_LIGHT)
+      .eq("category_id", categoryId)
+      .or(publicFilter())
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })) as unknown as {
       data: ArticleRow[] | null;
@@ -71,7 +93,7 @@ export const ArticleService = {
       .from("articles")
       .select(ARTICLE_SELECT_LIGHT)
       .eq("is_featured", true)
-      .eq("status", "published")
+      .or(publicFilter())
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })) as unknown as {
       data: ArticleRow[] | null;
@@ -87,7 +109,7 @@ export const ArticleService = {
       .from("articles")
       .select(ARTICLE_SELECT_LIGHT)
       .eq("category_id", categoryId)
-      .eq("status", "published")
+      .or(publicFilter())
       .neq("id", article.id)
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
@@ -101,7 +123,7 @@ export const ArticleService = {
     const result = (await supabase
       .from("articles")
       .select(ARTICLE_SELECT_LIGHT)
-      .eq("status", "published")
+      .or(publicFilter())
       .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
@@ -119,24 +141,31 @@ export const ArticleService = {
       categoryId = await getCategoryId(category);
       if (!categoryId) return { articles: [], total: 0 };
     }
+    return this.findPaginatedByCategoryId(categoryId, page, pageSize);
+  },
 
+  async findPaginatedByCategoryId(
+    categoryId: string | null,
+    page: number,
+    pageSize: number
+  ): Promise<{ articles: Article[]; total: number }> {
     const supabase = await createServerSupabaseClient();
     const from = (page - 1) * pageSize;
     const to = page * pageSize - 1;
 
-    const base = supabase
+    let base = supabase
       .from("articles")
       .select(ARTICLE_SELECT_LIGHT, { count: "exact" })
-      .eq("status", "published")
+      .or(publicFilter())
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .range(from, to);
 
-    const raw = categoryId
-      ? await base.eq("category_id", categoryId)
-      : await base;
+    if (categoryId) {
+      base = base.eq("category_id", categoryId);
+    }
 
-    const result = raw as unknown as {
+    const result = (await base) as unknown as {
       data: ArticleRow[] | null;
       count: number | null;
     };
@@ -145,5 +174,17 @@ export const ArticleService = {
       articles: (result.data ?? []).map(mapArticleRow),
       total: result.count ?? 0,
     };
+  },
+
+  // Fetch article for admin preview (all statuses)
+  async findBySlugAnyStatus(slug: string): Promise<Article | null> {
+    const supabase = await createServerSupabaseClient();
+    const result = (await supabase
+      .from("articles")
+      .select(ARTICLE_SELECT_FULL)
+      .eq("slug", slug)
+      .maybeSingle()) as unknown as { data: ArticleRow | null };
+    if (!result.data) return null;
+    return mapArticleRow(result.data);
   },
 };
