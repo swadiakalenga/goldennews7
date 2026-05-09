@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useToast } from "@/components/admin/ToastProvider";
+import LiveUpdatesPanel from "@/components/admin/LiveUpdatesPanel";
 
 const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
 import {
@@ -35,10 +36,17 @@ interface FormState {
   status: ArticleRow["status"];
   isFeatured: boolean;
   isBreaking: boolean;
+  isLive: boolean;
   scheduledAt: string;
   breakingExpiresAt: string;
   seoTitle: string;
   seoDescription: string;
+  aiSummary: string;
+  whyItMatters: string;
+  readingTimeMinutes: string;
+  socialTwitter: string;
+  socialFacebook: string;
+  socialTelegram: string;
 }
 
 function generateSlug(title: string): string {
@@ -70,6 +78,7 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
     status: article?.status ?? "draft",
     isFeatured: article?.is_featured ?? false,
     isBreaking: article?.is_breaking ?? false,
+    isLive: (article as ArticleRow & { is_live?: boolean })?.is_live ?? false,
     scheduledAt: article?.scheduled_at
       ? new Date(article.scheduled_at).toISOString().slice(0, 16)
       : "",
@@ -78,6 +87,12 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
       : "",
     seoTitle: article?.seo_title ?? "",
     seoDescription: article?.seo_description ?? "",
+    aiSummary: (article as ArticleRow & { ai_summary?: string | null })?.ai_summary ?? "",
+    whyItMatters: (article as ArticleRow & { why_it_matters?: string | null })?.why_it_matters ?? "",
+    readingTimeMinutes: String((article as ArticleRow & { reading_time_minutes?: number | null })?.reading_time_minutes ?? ""),
+    socialTwitter: (article as ArticleRow & { social_twitter?: string | null })?.social_twitter ?? "",
+    socialFacebook: (article as ArticleRow & { social_facebook?: string | null })?.social_facebook ?? "",
+    socialTelegram: (article as ArticleRow & { social_telegram?: string | null })?.social_telegram ?? "",
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -121,6 +136,15 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
     return Object.keys(errs).length === 0;
   }
 
+  function generateSocialSnippets() {
+    const title = form.title.trim();
+    const excerpt = form.excerpt.trim().slice(0, 180);
+    const twitter = `${title}\n\n${excerpt}${excerpt.length >= 180 ? "…" : ""}\n\n#GoldenNews7 #ActuRDC`;
+    const facebook = `${title}\n\n${excerpt}${excerpt.length >= 180 ? "…" : ""}\n\nSuivez GoldenNews7 pour toute l'actualité congolaise.`;
+    const telegram = `📰 ${title}\n\n${excerpt}${excerpt.length >= 180 ? "…" : ""}`;
+    setForm((f) => ({ ...f, socialTwitter: twitter, socialFacebook: facebook, socialTelegram: telegram }));
+  }
+
   async function handleSubmit(e: React.FormEvent, submitStatus?: ArticleRow["status"]) {
     e.preventDefault();
     if (!validate()) return;
@@ -151,6 +175,7 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
         status: effectiveStatus,
         is_featured: form.isFeatured,
         is_breaking: form.isBreaking,
+        is_live: form.isLive,
         seo_title: form.seoTitle.trim() || null,
         seo_description: form.seoDescription.trim() || null,
         published_at: effectiveStatus === "published" ? new Date().toISOString() : (article?.published_at ?? null),
@@ -160,6 +185,12 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
         breaking_expires_at: form.isBreaking && form.breakingExpiresAt
           ? new Date(form.breakingExpiresAt).toISOString()
           : null,
+        ai_summary: form.aiSummary.trim() || null,
+        why_it_matters: form.whyItMatters.trim() || null,
+        reading_time_minutes: form.readingTimeMinutes ? parseInt(form.readingTimeMinutes, 10) : null,
+        social_twitter: form.socialTwitter.trim() || null,
+        social_facebook: form.socialFacebook.trim() || null,
+        social_telegram: form.socialTelegram.trim() || null,
       };
 
       if (isEdit && article) {
@@ -368,6 +399,104 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
             </Suspense>
           </div>
 
+          {/* AI Summary */}
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-4 bg-amber-500 rounded-full" />
+              <h3 className="text-sm font-bold text-white">Résumé IA (EN BREF)</h3>
+            </div>
+            <textarea
+              value={form.aiSummary}
+              onChange={(e) => set("aiSummary", e.target.value)}
+              rows={4}
+              placeholder={"• Point clé 1\n• Point clé 2\n• Point clé 3\nUn point par ligne — affiché sous forme de bullets en haut de l'article."}
+              className={`${fieldClass()} font-mono text-xs`}
+            />
+            <div className="flex items-center gap-4 mt-2">
+              <p className="text-xs text-gray-600">Un point par ligne (avec ou sans tiret/puce). Laisser vide pour masquer le bloc.</p>
+              <div className="shrink-0">
+                <label className="text-xs text-gray-500">Temps de lecture (min)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={form.readingTimeMinutes}
+                  onChange={(e) => set("readingTimeMinutes", e.target.value)}
+                  placeholder="Auto"
+                  className="w-20 ml-2 px-2 py-1 bg-gray-800 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-amber-500/50"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Why It Matters */}
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-4 bg-orange-500 rounded-full" />
+              <h3 className="text-sm font-bold text-white">Pourquoi c&apos;est important</h3>
+            </div>
+            <textarea
+              value={form.whyItMatters}
+              onChange={(e) => set("whyItMatters", e.target.value)}
+              rows={3}
+              placeholder="Expliquez pourquoi cet article est important pour les lecteurs… (laisser vide pour masquer)"
+              className={fieldClass()}
+            />
+          </div>
+
+          {/* Social snippets */}
+          <div className="bg-gray-900 border border-white/5 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 bg-sky-500 rounded-full" />
+                <h3 className="text-sm font-bold text-white">Partage social</h3>
+              </div>
+              <button
+                type="button"
+                onClick={generateSocialSnippets}
+                className="px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 text-xs font-bold rounded-lg border border-sky-500/20 transition-colors"
+              >
+                ✨ Générer
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Twitter / X</label>
+                <textarea
+                  value={form.socialTwitter}
+                  onChange={(e) => set("socialTwitter", e.target.value)}
+                  rows={3}
+                  placeholder="Tweet à copier…"
+                  className={`${fieldClass()} text-xs`}
+                />
+                <p className="text-xs text-gray-600 mt-0.5">{form.socialTwitter.length}/280</p>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Facebook</label>
+                <textarea
+                  value={form.socialFacebook}
+                  onChange={(e) => set("socialFacebook", e.target.value)}
+                  rows={3}
+                  placeholder="Post Facebook à copier…"
+                  className={`${fieldClass()} text-xs`}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Telegram</label>
+                <textarea
+                  value={form.socialTelegram}
+                  onChange={(e) => set("socialTelegram", e.target.value)}
+                  rows={2}
+                  placeholder="Message Telegram à copier…"
+                  className={`${fieldClass()} text-xs`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Live updates panel (edit mode only) */}
+          {isEdit && article && <LiveUpdatesPanel articleId={article.id} />}
+
           {/* SEO */}
           <div className="bg-gray-900 border border-white/5 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -505,6 +634,20 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
                 className={`w-10 h-6 rounded-full transition-all ${form.isBreaking ? "bg-red-500" : "bg-gray-700"}`}
               >
                 <span className={`block w-4 h-4 rounded-full bg-white shadow transition-transform mx-1 ${form.isBreaking ? "translate-x-4" : ""}`} />
+              </button>
+            </div>
+            <div className="border-t border-white/5" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Mode Direct</p>
+                <p className="text-xs text-gray-500">Affiche l&apos;indicateur LIVE + mises à jour</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => set("isLive", !form.isLive)}
+                className={`w-10 h-6 rounded-full transition-all ${form.isLive ? "bg-red-500" : "bg-gray-700"}`}
+              >
+                <span className={`block w-4 h-4 rounded-full bg-white shadow transition-transform mx-1 ${form.isLive ? "translate-x-4" : ""}`} />
               </button>
             </div>
             {form.isBreaking && (

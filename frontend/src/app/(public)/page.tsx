@@ -4,6 +4,7 @@ import BreakingNews from "@/components/home/BreakingNews";
 import HeroArticle from "@/components/home/HeroArticle";
 import NewsGrid from "@/components/home/NewsGrid";
 import Sidebar from "@/components/home/Sidebar";
+import DailyBriefing from "@/components/home/DailyBriefing";
 import ArticleCard from "@/components/ui/ArticleCard";
 import { getArticles, getFeaturedArticles } from "@/lib/api/articles";
 import { getHomepageConfig } from "@/lib/api/homepage";
@@ -99,6 +100,9 @@ export default async function HomePage() {
             <Sidebar articles={sidebarArticles} />
           </div>
         </div>
+
+        {/* Daily briefing */}
+        <DailyBriefing articles={all.slice(0, 5)} />
 
         {/* Category featured sections */}
         {categorySections.map((cs) => (

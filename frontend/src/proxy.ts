@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   "/admin/homepage",
   "/admin/articles",
   "/admin/categories",
+  "/admin/context-cards",
   "/admin/authors",
   "/admin/media",
   "/admin/subscribers",

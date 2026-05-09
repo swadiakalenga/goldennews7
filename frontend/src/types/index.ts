@@ -34,13 +34,17 @@ export interface Article {
   category: Category;
   author: Author;
   publishedAt: string;
+  updatedAt?: string;
   readingTime: number;
   imageUrl: string;
   imageAlt: string;
   isFeatured?: boolean;
   isBreaking?: boolean;
+  isLive?: boolean;
   tags?: string[];
   views?: number;
+  aiSummary?: string;
+  whyItMatters?: string;
 }
 
 export interface NavItem {

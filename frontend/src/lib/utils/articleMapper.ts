@@ -3,21 +3,12 @@ import type { Article, Category } from "@/types";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const STORAGE_BUCKET = "article-images";
 
-/**
- * Ensure cover_image_url is always a full public URL.
- * - null / empty  → empty string (caller guards the <Image> render)
- * - already "http…" → returned as-is (correct format from uploadService)
- * - bare storage path → prefixed with the Supabase Storage public URL
- *   (handles legacy rows that stored just the path, e.g. "covers/file.jpg")
- */
 function toPublicImageUrl(coverUrl: string | null): string {
   if (!coverUrl) return "";
   if (coverUrl.startsWith("http")) return coverUrl;
   return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${coverUrl}`;
 }
 
-// Shape returned by all Supabase article queries that include joins.
-// content is optional so both light (list) and full (detail) queries can use it.
 export type ArticleRow = {
   id: string;
   slug: string;
@@ -27,9 +18,14 @@ export type ArticleRow = {
   cover_image_url: string | null;
   is_featured: boolean;
   is_breaking: boolean;
+  is_live?: boolean;
   views_count?: number;
   published_at: string | null;
+  updated_at?: string | null;
   created_at: string;
+  ai_summary?: string | null;
+  reading_time_minutes?: number | null;
+  why_it_matters?: string | null;
   categories: { id: string; name: string; slug: string } | null;
   authors: {
     name: string;
@@ -42,7 +38,8 @@ export type ArticleRow = {
   } | null;
 };
 
-function estimateReadingTime(content: string | null | undefined): number {
+function estimateReadingTime(content: string | null | undefined, storedMinutes?: number | null): number {
+  if (storedMinutes && storedMinutes > 0) return storedMinutes;
   if (!content) return 1;
   const words = content
     .replace(/<[^>]+>/g, " ")
@@ -70,19 +67,23 @@ export function mapArticleRow(row: ArticleRow): Article {
       facebookUrl: row.authors?.facebook_url ?? undefined,
     },
     publishedAt: row.published_at ?? row.created_at,
-    readingTime: estimateReadingTime(row.content),
+    updatedAt: row.updated_at ?? undefined,
+    readingTime: estimateReadingTime(row.content, row.reading_time_minutes),
     imageUrl: toPublicImageUrl(row.cover_image_url),
     imageAlt: row.title,
     isFeatured: row.is_featured,
     isBreaking: row.is_breaking,
+    isLive: row.is_live ?? false,
     tags: [],
-    views: 0,
+    views: row.views_count ?? 0,
+    aiSummary: row.ai_summary ?? undefined,
+    whyItMatters: row.why_it_matters ?? undefined,
   };
 }
 
 // SELECT strings — light for lists (no content), full for article detail
 export const ARTICLE_SELECT_LIGHT =
-  "id, slug, title, excerpt, cover_image_url, is_featured, is_breaking, views_count, published_at, created_at, categories:category_id(id, name, slug), authors:author_id(name, slug, avatar_url, role, bio, twitter_url, facebook_url)";
+  "id, slug, title, excerpt, cover_image_url, is_featured, is_breaking, is_live, views_count, published_at, created_at, categories:category_id(id, name, slug), authors:author_id(name, slug, avatar_url, role, bio, twitter_url, facebook_url)";
 
 export const ARTICLE_SELECT_FULL =
-  "id, slug, title, excerpt, content, cover_image_url, is_featured, is_breaking, views_count, published_at, created_at, categories:category_id(id, name, slug), authors:author_id(name, slug, avatar_url, role, bio, twitter_url, facebook_url)";
+  "id, slug, title, excerpt, content, cover_image_url, is_featured, is_breaking, is_live, views_count, published_at, updated_at, created_at, ai_summary, reading_time_minutes, why_it_matters, categories:category_id(id, name, slug), authors:author_id(name, slug, avatar_url, role, bio, twitter_url, facebook_url)";

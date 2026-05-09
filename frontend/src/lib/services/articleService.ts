@@ -103,18 +103,52 @@ export const ArticleService = {
 
   async findRelated(article: Article, limit = 3): Promise<Article[]> {
     const categoryId = await getCategoryId(article.category);
-    if (!categoryId) return [];
     const supabase = await createServerSupabaseClient();
-    const result = (await supabase
+
+    // Attempt 1: same category + same author
+    if (categoryId && article.author.slug) {
+      const authorRes = (await supabase
+        .from("authors")
+        .select("id")
+        .eq("slug", article.author.slug)
+        .maybeSingle()) as unknown as { data: { id: string } | null };
+
+      if (authorRes.data?.id) {
+        const r1 = (await supabase
+          .from("articles")
+          .select(ARTICLE_SELECT_LIGHT)
+          .eq("category_id", categoryId)
+          .eq("author_id", authorRes.data.id)
+          .or(publicFilter())
+          .neq("id", article.id)
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(limit)) as unknown as { data: ArticleRow[] | null };
+        if ((r1.data?.length ?? 0) >= limit) return r1.data!.map(mapArticleRow);
+      }
+    }
+
+    // Attempt 2: same category only
+    if (categoryId) {
+      const r2 = (await supabase
+        .from("articles")
+        .select(ARTICLE_SELECT_LIGHT)
+        .eq("category_id", categoryId)
+        .or(publicFilter())
+        .neq("id", article.id)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(limit)) as unknown as { data: ArticleRow[] | null };
+      if ((r2.data?.length ?? 0) > 0) return r2.data!.map(mapArticleRow);
+    }
+
+    // Fallback: latest articles
+    const r3 = (await supabase
       .from("articles")
       .select(ARTICLE_SELECT_LIGHT)
-      .eq("category_id", categoryId)
       .or(publicFilter())
       .neq("id", article.id)
       .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
       .limit(limit)) as unknown as { data: ArticleRow[] | null };
-    return (result.data ?? []).map(mapArticleRow);
+    return (r3.data ?? []).map(mapArticleRow);
   },
 
   async search(query: string): Promise<Article[]> {

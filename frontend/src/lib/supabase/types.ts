@@ -139,6 +139,14 @@ export interface Database {
           published_by: string | null;
           archived_at: string | null;
           breaking_expires_at: string | null;
+          ai_summary: string | null;
+          reading_time_minutes: number | null;
+          why_it_matters: string | null;
+          is_live: boolean;
+          social_twitter: string | null;
+          social_facebook: string | null;
+          social_telegram: string | null;
+          engagement_score: number;
           created_at: string;
           updated_at: string;
         };
@@ -162,6 +170,14 @@ export interface Database {
           published_by?: string | null;
           archived_at?: string | null;
           breaking_expires_at?: string | null;
+          ai_summary?: string | null;
+          reading_time_minutes?: number | null;
+          why_it_matters?: string | null;
+          is_live?: boolean;
+          social_twitter?: string | null;
+          social_facebook?: string | null;
+          social_telegram?: string | null;
+          engagement_score?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -185,6 +201,14 @@ export interface Database {
           published_by?: string | null;
           archived_at?: string | null;
           breaking_expires_at?: string | null;
+          ai_summary?: string | null;
+          reading_time_minutes?: number | null;
+          why_it_matters?: string | null;
+          is_live?: boolean;
+          social_twitter?: string | null;
+          social_facebook?: string | null;
+          social_telegram?: string | null;
+          engagement_score?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -409,6 +433,127 @@ export interface Database {
         };
         Relationships: [];
       };
+      context_cards: {
+        Row: {
+          id: string;
+          keyword: string;
+          title: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          keyword: string;
+          title: string;
+          content: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          keyword?: string;
+          title?: string;
+          content?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      live_updates: {
+        Row: {
+          id: string;
+          article_id: string;
+          content: string;
+          author_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          article_id: string;
+          content: string;
+          author_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          article_id?: string;
+          content?: string;
+          author_note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "live_updates_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notification_subscribers: {
+        Row: {
+          id: string;
+          endpoint: string;
+          p256dh: string | null;
+          auth: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          endpoint: string;
+          p256dh?: string | null;
+          auth?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          endpoint?: string;
+          p256dh?: string | null;
+          auth?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      article_sources: {
+        Row: {
+          id: string;
+          article_id: string;
+          source_name: string;
+          source_type: string;
+          source_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          article_id: string;
+          source_name: string;
+          source_type?: string;
+          source_url?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          article_id?: string;
+          source_name?: string;
+          source_type?: string;
+          source_url?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "article_sources_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       admin_activity_logs: {
         Row: {
           id: string;
@@ -447,6 +592,10 @@ export interface Database {
     Functions: {
       increment_article_views: {
         Args: { article_id: string };
+        Returns: undefined;
+      };
+      update_engagement_score: {
+        Args: { p_article_id: string };
         Returns: undefined;
       };
     };
