@@ -217,6 +217,90 @@ export interface Database {
         };
         Relationships: [];
       };
+      homepage_sections: {
+        Row: {
+          id: string;
+          section_key: string;
+          title: string;
+          description: string | null;
+          layout_type: string;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          section_key: string;
+          title: string;
+          description?: string | null;
+          layout_type?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          section_key?: string;
+          title?: string;
+          description?: string | null;
+          layout_type?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      homepage_slots: {
+        Row: {
+          id: string;
+          section_id: string;
+          article_id: string;
+          slot_type: string;
+          position: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          section_id: string;
+          article_id: string;
+          slot_type: string;
+          position?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          section_id?: string;
+          article_id?: string;
+          slot_type?: string;
+          position?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "homepage_slots_section_id_fkey";
+            columns: ["section_id"];
+            isOneToOne: false;
+            referencedRelation: "homepage_sections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "homepage_slots_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

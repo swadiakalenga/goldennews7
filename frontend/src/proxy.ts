@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // /admin/login is intentionally absent — it must never be guarded.
 const PROTECTED_PREFIXES = [
   "/admin/dashboard",
+  "/admin/homepage",
   "/admin/articles",
   "/admin/categories",
   "/admin/authors",
