@@ -9,9 +9,15 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
       {
-        // Supabase Storage — covers all project subdomains
+        // Supabase Storage — wildcard for all project subdomains
         protocol: "https",
         hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+      {
+        // Exact project hostname as fallback if wildcard doesn't match
+        protocol: "https",
+        hostname: "bkkquuyonvljeknbzmrh.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
     ],
