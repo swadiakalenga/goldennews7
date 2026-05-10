@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { TwitterApi } from "twitter-api-v2";
+import { TwitterApi, ApiResponseError } from "twitter-api-v2";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -38,14 +38,22 @@ export async function POST(req: NextRequest) {
     rowId = newRow?.id;
   }
 
-  // Check credentials
-  const apiKey      = process.env.X_API_KEY;
-  const apiSecret   = process.env.X_API_SECRET;
-  const accessToken = process.env.X_ACCESS_TOKEN;
-  const accessSecret = process.env.X_ACCESS_SECRET;
+  // Trim all credentials to prevent whitespace/newline issues from env files
+  const apiKey       = process.env.X_API_KEY?.trim();
+  const apiSecret    = process.env.X_API_SECRET?.trim();
+  const accessToken  = process.env.X_ACCESS_TOKEN?.trim();
+  const accessSecret = process.env.X_ACCESS_SECRET?.trim();
 
   if (!apiKey || !apiSecret || !accessToken || !accessSecret) {
-    const errMsg = "Twitter/X API credentials missing. Set X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET.";
+    const missing = (
+      [
+        !apiKey       && "X_API_KEY",
+        !apiSecret    && "X_API_SECRET",
+        !accessToken  && "X_ACCESS_TOKEN",
+        !accessSecret && "X_ACCESS_SECRET",
+      ] as (string | false)[]
+    ).filter(Boolean).join(", ");
+    const errMsg = `Missing X/Twitter credentials: ${missing}. Set these environment variables with OAuth 1.0a keys (not Bearer Token).`;
     if (rowId) {
       await supabase
         .from("social_posts")
@@ -75,13 +83,25 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, tweetId: tweet.data.id, url: tweetUrl, logId: rowId });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
+    let errMsg: string;
+
+    if (err instanceof ApiResponseError && err.code === 401) {
+      errMsg =
+        "X API returned 401 Unauthorized. " +
+        "Check: (1) X app permissions must be Read+Write at developer.x.com — " +
+        "if you changed them, regenerate the access token/secret and update X_ACCESS_TOKEN / X_ACCESS_SECRET; " +
+        "(2) X_API_KEY and X_API_SECRET must match the app that owns the access token; " +
+        "(3) ensure you are using OAuth 1.0a user context credentials, not a Bearer Token.";
+    } else {
+      errMsg = err instanceof Error ? err.message : String(err);
+    }
+
     if (rowId) {
       await supabase
         .from("social_posts")
-        .update({ status: "failed", error_message: msg.slice(0, 500) })
+        .update({ status: "failed", error_message: errMsg.slice(0, 500) })
         .eq("id", rowId);
     }
-    return NextResponse.json({ error: msg, logId: rowId }, { status: 500 });
+    return NextResponse.json({ error: errMsg, logId: rowId }, { status: 500 });
   }
 }
