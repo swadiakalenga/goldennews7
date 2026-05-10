@@ -27,8 +27,10 @@ const backdropVariants = {
 };
 
 export default function Navigation({ navItems }: { navItems: NavItem[] }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  // Track which pathname the drawer was opened on — auto-closes on navigation
+  const [openPathname, setOpenPathname] = useState<string | null>(null);
   const pathname = usePathname();
+  const mobileOpen = openPathname === pathname;
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -42,18 +44,13 @@ export default function Navigation({ navItems }: { navItems: NavItem[] }) {
     };
   }, [mobileOpen]);
 
-  // Close drawer on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(href + "/");
   }
 
   function close() {
-    setMobileOpen(false);
+    setOpenPathname(null);
   }
 
   return (
@@ -90,7 +87,7 @@ export default function Navigation({ navItems }: { navItems: NavItem[] }) {
               Rubriques
             </span>
             <button
-              onClick={() => setMobileOpen(true)}
+              onClick={() => setOpenPathname(pathname)}
               className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
               aria-label="Ouvrir le menu"
               aria-expanded={mobileOpen}

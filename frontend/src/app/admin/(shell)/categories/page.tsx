@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/admin/ToastProvider";
 import ConfirmModal from "@/components/admin/ConfirmModal";
@@ -15,20 +15,21 @@ export default function AdminCategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<CategoryRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchCategories = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getAdminCategories();
-      setCategories(data);
-    } catch {
-      toast("Erreur lors du chargement des catégories.", "error");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await getAdminCategories();
+        if (active) { setCategories(data); setLoading(false); }
+      } catch {
+        if (active) { toast("Erreur lors du chargement des catégories.", "error"); setLoading(false); }
+      }
     }
-  }, [toast]);
-
-  useEffect(() => { fetchCategories(); }, [fetchCategories]);
+    load();
+    return () => { active = false; };
+  }, [toast, refreshKey]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -37,7 +38,7 @@ export default function AdminCategoriesPage() {
       await deleteCategory(deleteTarget.id);
       toast("Catégorie supprimée.", "success");
       setDeleteTarget(null);
-      fetchCategories();
+      setRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       toast(err instanceof Error ? err.message : "Erreur lors de la suppression.", "error");
     } finally {

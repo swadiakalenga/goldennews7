@@ -336,7 +336,7 @@ function SectionCard({
         position: existing.length,
       });
       const newSlot: AdminSlot = {
-        id: Math.random().toString(36).slice(2),
+        id: crypto.randomUUID(),
         section_id: section.id,
         article_id: article.id,
         slot_type: slotType,

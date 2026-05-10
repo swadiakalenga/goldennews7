@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/admin/ToastProvider";
 import { getSocialPosts, deleteSocialPost } from "@/lib/admin/socialPostsService";
@@ -23,18 +23,19 @@ export default function AdminSocialPostsPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchPosts = useCallback(async () => {
-    setLoading(true);
-    try {
-      setPosts(await getSocialPosts(100));
-    } catch {
-      toast("Erreur de chargement.", "error");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await getSocialPosts(100);
+        if (active) { setPosts(data); setLoading(false); }
+      } catch {
+        if (active) { toast("Erreur de chargement.", "error"); setLoading(false); }
+      }
     }
+    load();
+    return () => { active = false; };
   }, [toast]);
-
-  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   async function handleDelete(id: string) {
     setDeletingId(id);

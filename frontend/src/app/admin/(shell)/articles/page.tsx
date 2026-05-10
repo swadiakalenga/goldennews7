@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ConfirmModal from "@/components/admin/ConfirmModal";
@@ -39,23 +39,21 @@ export default function AdminArticlesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const totalPages = Math.ceil(count / PAGE_SIZE);
-
-  const fetchArticles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await getAdminArticles({ status, q, page, pageSize: PAGE_SIZE, sortBy });
-      setArticles(result.data);
-      setCount(result.count);
-    } catch {
-      toast("Erreur lors du chargement des articles.", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [status, q, page, toast, sortBy]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    fetchArticles();
-  }, [fetchArticles]);
+    let active = true;
+    async function load() {
+      try {
+        const result = await getAdminArticles({ status, q, page, pageSize: PAGE_SIZE, sortBy });
+        if (active) { setArticles(result.data); setCount(result.count); setLoading(false); }
+      } catch {
+        if (active) { toast("Erreur lors du chargement des articles.", "error"); setLoading(false); }
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [status, q, page, toast, sortBy, refreshKey]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -70,7 +68,7 @@ export default function AdminArticlesPage() {
       await deleteArticle(deleteTarget.id);
       toast("Article supprimé.", "success");
       setDeleteTarget(null);
-      fetchArticles();
+      setRefreshKey((k) => k + 1);
     } catch {
       toast("Erreur lors de la suppression.", "error");
     } finally {

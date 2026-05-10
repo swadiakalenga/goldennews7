@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/admin/ToastProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
@@ -17,25 +17,25 @@ export default function SubscribersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const supabase = getSupabaseBrowserClient();
+  const supabaseRef = useRef(getSupabaseBrowserClient());
 
-  const fetchSubscribers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("newsletter_subscribers")
-        .select("*")
-        .order("subscribed_at", { ascending: false });
-      if (error) throw error;
-      setSubscribers((data as SubscriberRow[]) ?? []);
-    } catch {
-      toast("Erreur lors du chargement des abonnés.", "error");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const { data, error } = await supabaseRef.current
+          .from("newsletter_subscribers")
+          .select("*")
+          .order("subscribed_at", { ascending: false });
+        if (error) throw error;
+        if (active) { setSubscribers((data as SubscriberRow[]) ?? []); setLoading(false); }
+      } catch {
+        if (active) { toast("Erreur lors du chargement des abonnés.", "error"); setLoading(false); }
+      }
     }
-  }, [supabase, toast]);
-
-  useEffect(() => { fetchSubscribers(); }, [fetchSubscribers]);
+    load();
+    return () => { active = false; };
+  }, [toast]);
 
   function exportCsv() {
     const rows = [

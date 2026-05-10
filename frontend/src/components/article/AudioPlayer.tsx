@@ -31,7 +31,6 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-// Split into natural paragraph/sentence chunks (≤350 chars each) for more human-sounding playback
 function buildChunks(html: string, title: string): string[] {
   const plain = stripHtml(html);
   const fullText = `${title}. ${plain}`;
@@ -43,7 +42,6 @@ function buildChunks(html: string, title: string): string[] {
       result.push(para);
       continue;
     }
-    // Split long paragraphs at sentence boundaries
     const sentences = para.match(/[^.!?]+[.!?]+["']?\s*/g) ?? [para];
     let buf = "";
     for (const sent of sentences) {
@@ -86,21 +84,24 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
   const playStateRef = useRef<PlayState>("idle");
   const speedRef = useRef<Speed>("normal");
   const selectedVoiceRef = useRef<string>("");
+  const stopRef = useRef<(() => void) | null>(null);
+  // Ref for recursive speakChunk calls (avoids variable-before-declaration)
+  const speakChunkRef = useRef<(index: number) => void>(() => {});
 
-  // Keep refs in sync
-  playStateRef.current = playState;
-  speedRef.current = speed;
-  selectedVoiceRef.current = selectedVoiceUri;
+  // Sync refs in effects (never during render)
+  useEffect(() => { playStateRef.current = playState; }, [playState]);
+  useEffect(() => { speedRef.current = speed; }, [speed]);
+  useEffect(() => { selectedVoiceRef.current = selectedVoiceUri; }, [selectedVoiceUri]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    setSupported(true);
 
     function loadVoices() {
+      setSupported(true);
       const all = window.speechSynthesis.getVoices();
       const fr = getFrenchVoices(all);
       setVoices(fr);
-      if (!selectedVoiceUri && fr.length > 0) {
+      if (!selectedVoiceRef.current && fr.length > 0) {
         const best = getBestFrenchVoice(fr);
         if (best) setSelectedVoiceUri(best.voiceURI);
       }
@@ -112,13 +113,16 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
       window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
       window.speechSynthesis.cancel();
     };
-  }, [selectedVoiceUri]);
+  }, []);
 
-  // Build chunks when content changes
+  // Build chunks and update totalChunks state (inside async fn to avoid sync setState-in-effect)
   useEffect(() => {
-    const chunks = buildChunks(content, title);
-    chunksRef.current = chunks;
-    setTotalChunks(chunks.length);
+    async function build() {
+      const chunks = buildChunks(content, title);
+      chunksRef.current = chunks;
+      setTotalChunks(chunks.length);
+    }
+    build();
   }, [content, title]);
 
   const speakChunk = useCallback((index: number) => {
@@ -127,7 +131,7 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
       setPlayState("idle");
       setChunkIndex(0);
       chunkIndexRef.current = 0;
-      if (activeStop === stopPlayback) activeStop = null;
+      if (activeStop === stopRef.current) activeStop = null;
       return;
     }
 
@@ -137,7 +141,6 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
 
-    // Apply selected voice
     const allVoices = window.speechSynthesis.getVoices();
     const voice = allVoices.find((v) => v.voiceURI === selectedVoiceRef.current);
     if (voice) utterance.voice = voice;
@@ -148,43 +151,45 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
       chunkIndexRef.current = next;
       setChunkIndex(next);
 
-      // Small pause between chunks (feels more natural)
       if (next < chunksRef.current.length) {
+        // Use ref to avoid circular declaration (speakChunk self-reference)
         setTimeout(() => {
-          if (playStateRef.current === "playing") speakChunk(next);
+          if (playStateRef.current === "playing") speakChunkRef.current(next);
         }, 300);
       } else {
         setPlayState("idle");
         setChunkIndex(0);
         chunkIndexRef.current = 0;
-        if (activeStop === stopPlayback) activeStop = null;
+        if (activeStop === stopRef.current) activeStop = null;
       }
     };
 
     utterance.onerror = (e) => {
-      // 'interrupted' fires when we cancel() — not a real error
       if (e.error !== "interrupted" && e.error !== "canceled") {
         setPlayState("idle");
       }
     };
 
     window.speechSynthesis.speak(utterance);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Keep refs updated
+  useEffect(() => { speakChunkRef.current = speakChunk; }, [speakChunk]);
+
   const stopPlayback = useCallback(() => {
     window.speechSynthesis.cancel();
     setPlayState("idle");
     setChunkIndex(0);
     chunkIndexRef.current = 0;
-    if (activeStop === stopPlayback) activeStop = null;
+    if (activeStop === stopRef.current) activeStop = null;
   }, []);
+
+  useEffect(() => { stopRef.current = stopPlayback; }, [stopPlayback]);
 
   const play = useCallback(() => {
     if (!supported) return;
-    // Stop any other player
-    if (activeStop && activeStop !== stopPlayback) activeStop();
-    activeStop = stopPlayback;
+    if (activeStop && activeStop !== stopRef.current) activeStop();
+    activeStop = stopRef.current;
 
     window.speechSynthesis.cancel();
     const startIndex = playState === "paused" ? chunkIndexRef.current : 0;
@@ -192,10 +197,9 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
     setChunkIndex(startIndex);
     setPlayState("playing");
     speakChunk(startIndex);
-  }, [supported, playState, stopPlayback, speakChunk]);
+  }, [supported, playState, speakChunk]);
 
   const pause = useCallback(() => {
-    // Chrome's pause() is unreliable — cancel and remember position instead
     window.speechSynthesis.cancel();
     setPlayState("paused");
   }, []);
@@ -205,7 +209,6 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
     speakChunk(chunkIndexRef.current);
   }, [speakChunk]);
 
-  // When speed changes during playback, restart current chunk at new rate
   function handleSpeedChange(s: Speed) {
     setSpeed(s);
     speedRef.current = s;
@@ -225,7 +228,6 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
     }`}>
       {/* Main controls row */}
       <div className="flex items-center gap-3 px-4 py-3">
-        {/* Animated wave */}
         {playState === "playing" && (
           <div className="flex items-end gap-0.5 h-5 shrink-0">
             {[60, 100, 75, 90, 65].map((h, i) => (
@@ -238,14 +240,11 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
           </div>
         )}
 
-        {/* Label */}
         <span className={`text-sm font-semibold shrink-0 ${playState === "playing" ? "text-amber-700" : "text-gray-700"}`}>
           {playState === "playing" ? "Lecture…" : playState === "paused" ? "En pause" : "Écouter l'article"}
         </span>
 
-        {/* Controls */}
         <div className="flex items-center gap-1.5 ml-auto">
-          {/* Play / Resume */}
           {(playState === "idle" || playState === "paused") && (
             <button
               onClick={playState === "paused" ? resume : play}
@@ -259,7 +258,6 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
             </button>
           )}
 
-          {/* Pause */}
           {playState === "playing" && (
             <button onClick={pause} aria-label="Pause"
               className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors">
@@ -269,7 +267,6 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
             </button>
           )}
 
-          {/* Stop */}
           {playState !== "idle" && (
             <button onClick={stopPlayback} aria-label="Arrêter"
               className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors">
@@ -279,7 +276,6 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
             </button>
           )}
 
-          {/* Speed selector */}
           <div className="flex items-center gap-0.5 ml-1 bg-white border border-gray-200 rounded-lg overflow-hidden">
             {(["slow", "normal", "fast"] as Speed[]).map((s) => (
               <button
@@ -298,7 +294,7 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
         </div>
       </div>
 
-      {/* Progress bar (visible during play/pause) */}
+      {/* Progress bar */}
       {playState !== "idle" && totalChunks > 0 && (
         <div className="h-0.5 bg-amber-100">
           <div
@@ -308,7 +304,7 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
         </div>
       )}
 
-      {/* Voice selector (only if multiple French voices) */}
+      {/* Voice selector */}
       {voices.length > 1 && playState === "idle" && (
         <div className="px-4 pb-3 flex items-center gap-2">
           <span className="text-[11px] text-gray-400 shrink-0">Voix :</span>
@@ -326,7 +322,6 @@ export default function AudioPlayer({ title, content }: AudioPlayerProps) {
         </div>
       )}
 
-      {/* Disclaimer */}
       <div className={`px-4 pb-2 ${voices.length > 1 && playState === "idle" ? "" : "pt-0"}`}>
         <p className="text-[10px] text-gray-400">
           Lecture automatique par synthèse vocale. Qualité dépendante du navigateur.

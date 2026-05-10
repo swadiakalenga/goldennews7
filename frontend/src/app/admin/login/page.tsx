@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -10,13 +10,11 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (searchParams.get("error") === "unauthorized") {
-      setError("Accès refusé — votre compte n'a pas les droits administrateur.");
-    }
-  }, [searchParams]);
+  const [error, setError] = useState(() =>
+    searchParams.get("error") === "unauthorized"
+      ? "Accès refusé — votre compte n'a pas les droits administrateur."
+      : ""
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

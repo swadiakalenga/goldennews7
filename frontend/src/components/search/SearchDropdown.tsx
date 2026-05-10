@@ -64,7 +64,11 @@ export default function SearchDropdown({ onClose, autoFocus }: SearchDropdownPro
   const [results, setResults] = useState<Article[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  // Initialize from localStorage directly to avoid a setState-in-effect
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    return loadRecent();
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -73,32 +77,30 @@ export default function SearchDropdown({ onClose, autoFocus }: SearchDropdownPro
   }, [autoFocus]);
 
   useEffect(() => {
-    setRecentSearches(loadRecent());
-  }, []);
-
-  useEffect(() => {
-    setSelectedIndex(-1);
     const q = query.trim();
-    if (!q) {
-      setResults([]);
-      setOpen(recentSearches.length > 0);
-      return;
-    }
 
-    const supabase = getSupabaseBrowserClient();
-    supabase
-      .from("articles")
-      .select(ARTICLE_SELECT_LIGHT)
-      .eq("status", "published")
-      .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%`)
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .then(({ data }) => {
-        const rows = (data ?? []) as unknown as ArticleRow[];
-        setResults(rows.map(mapArticleRow));
-        setOpen(true);
-      });
+    async function doSearch() {
+      if (!q) {
+        setResults([]);
+        setOpen(recentSearches.length > 0);
+        return;
+      }
+
+      const supabase = getSupabaseBrowserClient();
+      const { data } = await supabase
+        .from("articles")
+        .select(ARTICLE_SELECT_LIGHT)
+        .eq("status", "published")
+        .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%`)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(5);
+      const rows = (data ?? []) as unknown as ArticleRow[];
+      setResults(rows.map(mapArticleRow));
+      setSelectedIndex(-1);
+      setOpen(true);
+    }
+    doSearch();
   }, [query, recentSearches.length]);
 
   // Close on outside click
@@ -179,6 +181,7 @@ export default function SearchDropdown({ onClose, autoFocus }: SearchDropdownPro
           className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 rounded-full border border-transparent focus:outline-none focus:border-amber-400 focus:bg-white transition-colors"
           aria-label="Rechercher"
           aria-expanded={open}
+          aria-controls="search-dropdown-listbox"
           aria-autocomplete="list"
           role="combobox"
           aria-activedescendant={selectedIndex >= 0 ? `search-item-${selectedIndex}` : undefined}

@@ -66,14 +66,20 @@ export default function AdminActivityPage() {
   const [entityFilter, setEntityFilter] = useState<string>("");
 
   useEffect(() => {
-    setLoading(true);
-    getAdminActivityLogs({
-      action: actionFilter || undefined,
-      entity_type: entityFilter || undefined,
-      limit: 200,
-    })
-      .then((data) => setLogs(data as unknown as LogEntry[]))
-      .finally(() => setLoading(false));
+    let active = true;
+    async function load() {
+      const data = await getAdminActivityLogs({
+        action: actionFilter || undefined,
+        entity_type: entityFilter || undefined,
+        limit: 200,
+      });
+      if (active) {
+        setLogs(data as unknown as LogEntry[]);
+        setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
   }, [actionFilter, entityFilter]);
 
   const selectClass = "px-3 py-2 bg-gray-800 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500/50 transition-colors";

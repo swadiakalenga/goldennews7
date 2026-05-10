@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/admin/ToastProvider";
 import { getAdminSiteSettings, upsertSiteSettings } from "@/lib/admin/siteSettingsService";
@@ -223,12 +224,12 @@ export default function AdminSettingsPage() {
             <h2 className="text-sm font-bold text-white uppercase tracking-widest">Partage automatique</h2>
             <p className="text-xs text-gray-500 mt-1">Publie automatiquement sur les réseaux lors de la publication d&apos;un article.</p>
           </div>
-          <a
+          <Link
             href="/admin/social-posts"
             className="text-xs text-amber-400 hover:text-amber-300 font-semibold"
           >
             Voir les logs →
-          </a>
+          </Link>
         </div>
 
         <div className="space-y-4 border-t border-white/5 pt-4">

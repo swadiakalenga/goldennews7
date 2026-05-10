@@ -6,7 +6,6 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { mapArticleRow, type ArticleRow, ARTICLE_SELECT_LIGHT } from "@/lib/utils/articleMapper";
 import { categoryToSlug } from "@/lib/utils";
-import ArticleCard from "@/components/ui/ArticleCard";
 import Badge from "@/components/ui/Badge";
 import type { Article } from "@/types";
 
@@ -59,27 +58,28 @@ export default function SearchContent() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
+    if (!query.trim()) return;
 
-    setLoading(true);
-    const supabase = getSupabaseBrowserClient();
-    supabase
-      .from("articles")
-      .select(ARTICLE_SELECT_LIGHT)
-      .eq("status", "published")
-      .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        const rows = (data ?? []) as unknown as ArticleRow[];
-        setResults(rows.map(mapArticleRow));
-        setLoading(false);
-      });
+    async function doSearch() {
+      setLoading(true);
+      const supabase = getSupabaseBrowserClient();
+      const { data } = await supabase
+        .from("articles")
+        .select(ARTICLE_SELECT_LIGHT)
+        .eq("status", "published")
+        .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(20);
+      const rows = (data ?? []) as unknown as ArticleRow[];
+      setResults(rows.map(mapArticleRow));
+      setLoading(false);
+    }
+    doSearch();
   }, [query]);
+
+  // Derive display results — empty when query is blank (no sync setState needed)
+  const displayResults = query.trim() ? results : [];
 
   if (!query.trim()) {
     return (
@@ -111,7 +111,7 @@ export default function SearchContent() {
     );
   }
 
-  if (results.length === 0) {
+  if (displayResults.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -130,11 +130,11 @@ export default function SearchContent() {
   return (
     <div>
       <p className="text-sm text-gray-500 mb-6">
-        <span className="font-bold text-gray-900">{results.length}</span> résultat
-        {results.length > 1 ? "s" : ""} pour «<strong>{query}</strong>»
+        <span className="font-bold text-gray-900">{displayResults.length}</span> résultat
+        {displayResults.length > 1 ? "s" : ""} pour «<strong>{query}</strong>»
       </p>
       <div className="flex flex-col gap-4">
-        {results.map((article) => (
+        {displayResults.map((article) => (
           <HighlightCard key={article.id} article={article} query={query} />
         ))}
       </div>

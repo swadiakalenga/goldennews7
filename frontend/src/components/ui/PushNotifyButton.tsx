@@ -4,16 +4,18 @@ import { useState, useEffect } from "react";
 
 type State = "idle" | "subscribed" | "denied" | "unsupported" | "loading";
 
+function getInitialState(): State {
+  if (typeof window === "undefined") return "idle";
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return "unsupported";
+  if (Notification.permission === "denied") return "denied";
+  return "idle";
+}
+
 export default function PushNotifyButton() {
-  const [state, setState] = useState<State>("idle");
+  const [state, setState] = useState<State>(getInitialState);
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setState("unsupported");
-      return;
-    }
-    if (Notification.permission === "denied") setState("denied");
-    else if (Notification.permission === "granted") {
+    if (Notification.permission === "granted") {
       navigator.serviceWorker.getRegistration().then((reg) => {
         reg?.pushManager.getSubscription().then((sub) => {
           if (sub) setState("subscribed");

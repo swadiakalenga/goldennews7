@@ -1,8 +1,6 @@
 // GoldenNews7 Service Worker — Push Notification Scaffold
 // Future: replace with full push subscription handling
 
-const CACHE_NAME = "gn7-v1";
-
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });

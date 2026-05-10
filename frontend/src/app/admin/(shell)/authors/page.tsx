@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/components/admin/ToastProvider";
@@ -16,20 +16,21 @@ export default function AdminAuthorsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<AuthorRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchAuthors = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getAdminAuthors();
-      setAuthors(data);
-    } catch {
-      toast("Erreur lors du chargement des auteurs.", "error");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await getAdminAuthors();
+        if (active) { setAuthors(data); setLoading(false); }
+      } catch {
+        if (active) { toast("Erreur lors du chargement des auteurs.", "error"); setLoading(false); }
+      }
     }
-  }, [toast]);
-
-  useEffect(() => { fetchAuthors(); }, [fetchAuthors]);
+    load();
+    return () => { active = false; };
+  }, [toast, refreshKey]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -38,7 +39,7 @@ export default function AdminAuthorsPage() {
       await deleteAuthor(deleteTarget.id);
       toast("Auteur supprimé.", "success");
       setDeleteTarget(null);
-      fetchAuthors();
+      setRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       toast(err instanceof Error ? err.message : "Erreur lors de la suppression.", "error");
     } finally {

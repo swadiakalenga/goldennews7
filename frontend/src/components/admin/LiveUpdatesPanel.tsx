@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { getLiveUpdates, addLiveUpdate, deleteLiveUpdate } from "@/lib/admin/liveUpdatesService";
 import type { LiveUpdate } from "@/lib/admin/liveUpdatesService";
 
@@ -16,18 +16,21 @@ export default function LiveUpdatesPanel({ articleId }: LiveUpdatesPanelProps) {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchUpdates = useCallback(async () => {
-    try {
-      const data = await getLiveUpdates(articleId);
-      setUpdates(data);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  }, [articleId]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => { fetchUpdates(); }, [fetchUpdates]);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await getLiveUpdates(articleId);
+        if (active) { setUpdates(data); setLoading(false); }
+      } catch {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [articleId, refreshKey]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -37,7 +40,7 @@ export default function LiveUpdatesPanel({ articleId }: LiveUpdatesPanelProps) {
       await addLiveUpdate({ article_id: articleId, content: content.trim(), author_note: note.trim() || undefined });
       setContent("");
       setNote("");
-      fetchUpdates();
+      setRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erreur");
     } finally {
@@ -49,7 +52,7 @@ export default function LiveUpdatesPanel({ articleId }: LiveUpdatesPanelProps) {
     setDeletingId(id);
     try {
       await deleteLiveUpdate(id);
-      fetchUpdates();
+      setRefreshKey((k) => k + 1);
     } catch {
       /* silent */
     } finally {

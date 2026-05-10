@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useToast } from "@/components/admin/ToastProvider";
 import ConfirmModal from "@/components/admin/ConfirmModal";
@@ -13,20 +13,21 @@ export default function AdminContextCardsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<ContextCard | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchCards = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getContextCards();
-      setCards(data);
-    } catch {
-      toast("Erreur lors du chargement des cartes contexte.", "error");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await getContextCards();
+        if (active) { setCards(data); setLoading(false); }
+      } catch {
+        if (active) { toast("Erreur lors du chargement des cartes contexte.", "error"); setLoading(false); }
+      }
     }
-  }, [toast]);
-
-  useEffect(() => { fetchCards(); }, [fetchCards]);
+    load();
+    return () => { active = false; };
+  }, [toast, refreshKey]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -35,7 +36,7 @@ export default function AdminContextCardsPage() {
       await deleteContextCard(deleteTarget.id);
       toast("Carte supprimée.", "success");
       setDeleteTarget(null);
-      fetchCards();
+      setRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       toast(err instanceof Error ? err.message : "Erreur lors de la suppression.", "error");
     } finally {

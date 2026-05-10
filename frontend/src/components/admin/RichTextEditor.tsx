@@ -82,11 +82,10 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     },
   });
 
-  // Sync external value changes (e.g. when form loads existing article)
+  // Sync external value into editor on mount (e.g. when form loads an existing article)
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value, { emitUpdate: false });
-      setSourceHtml(value);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

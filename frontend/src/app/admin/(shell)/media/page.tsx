@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useToast } from "@/components/admin/ToastProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -45,42 +45,44 @@ export default function AdminMediaPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [preview, setPreview] = useState<MediaFile | null>(null);
 
-  const supabase = getSupabaseBrowserClient();
+  const supabaseRef = useRef(getSupabaseBrowserClient());
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchFiles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.storage.from(BUCKET).list("", {
-        limit: 200,
-        offset: 0,
-        sortBy: { column: "created_at", order: "desc" },
-      });
-      if (error) throw error;
+  useEffect(() => {
+    let active = true;
+    const supabase = supabaseRef.current;
+    async function load() {
+      try {
+        const { data, error } = await supabase.storage.from(BUCKET).list("", {
+          limit: 200,
+          offset: 0,
+          sortBy: { column: "created_at", order: "desc" },
+        });
+        if (error) throw error;
 
-      const items: MediaFile[] = await Promise.all(
-        (data ?? [])
-          .filter((f) => f.name !== ".emptyFolderPlaceholder")
-          .map(async (f) => {
-            const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(f.name);
-            return {
-              name: f.name,
-              id: f.id ?? f.name,
-              created_at: f.created_at ?? new Date().toISOString(),
-              metadata: f.metadata as MediaFile["metadata"],
-              publicUrl: urlData.publicUrl,
-            };
-          })
-      );
+        const items: MediaFile[] = await Promise.all(
+          (data ?? [])
+            .filter((f) => f.name !== ".emptyFolderPlaceholder")
+            .map(async (f) => {
+              const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(f.name);
+              return {
+                name: f.name,
+                id: f.id ?? f.name,
+                created_at: f.created_at ?? new Date().toISOString(),
+                metadata: f.metadata as MediaFile["metadata"],
+                publicUrl: urlData.publicUrl,
+              };
+            })
+        );
 
-      setFiles(items);
-    } catch {
-      toast("Erreur lors du chargement des médias.", "error");
-    } finally {
-      setLoading(false);
+        if (active) { setFiles(items); setLoading(false); }
+      } catch {
+        if (active) { toast("Erreur lors du chargement des médias.", "error"); setLoading(false); }
+      }
     }
-  }, [supabase, toast]);
-
-  useEffect(() => { fetchFiles(); }, [fetchFiles]);
+    load();
+    return () => { active = false; };
+  }, [toast, refreshKey]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(e.target.files ?? []);
@@ -107,7 +109,7 @@ export default function AdminMediaPage() {
       const safeName = file.name.replace(/\.[^/.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
       const path = `${safeName}-${Date.now()}.${ext}`;
 
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false, cacheControl: "31536000" });
+      const { error } = await supabaseRef.current.storage.from(BUCKET).upload(path, file, { upsert: false, cacheControl: "31536000" });
       if (error) {
         toast(`Erreur pour ${file.name}: ${error.message}`, "error");
       }
@@ -119,18 +121,18 @@ export default function AdminMediaPage() {
     setUploadProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
     toast(`${done} fichier${done !== 1 ? "s" : ""} importé${done !== 1 ? "s" : ""}.`, "success");
-    fetchFiles();
+    setRefreshKey((k) => k + 1);
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      const { error } = await supabase.storage.from(BUCKET).remove([deleteTarget.name]);
+      const { error } = await supabaseRef.current.storage.from(BUCKET).remove([deleteTarget.name]);
       if (error) throw error;
       toast("Fichier supprimé.", "success");
       setDeleteTarget(null);
-      fetchFiles();
+      setRefreshKey((k) => k + 1);
     } catch {
       toast("Erreur lors de la suppression.", "error");
     } finally {
