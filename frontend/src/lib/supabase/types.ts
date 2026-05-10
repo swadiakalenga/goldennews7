@@ -146,6 +146,8 @@ export interface Database {
           social_twitter: string | null;
           social_facebook: string | null;
           social_telegram: string | null;
+          auto_share_twitter: boolean;
+          auto_share_facebook: boolean;
           engagement_score: number;
           created_at: string;
           updated_at: string;
@@ -177,6 +179,8 @@ export interface Database {
           social_twitter?: string | null;
           social_facebook?: string | null;
           social_telegram?: string | null;
+          auto_share_twitter?: boolean;
+          auto_share_facebook?: boolean;
           engagement_score?: number;
           created_at?: string;
           updated_at?: string;
@@ -208,6 +212,8 @@ export interface Database {
           social_twitter?: string | null;
           social_facebook?: string | null;
           social_telegram?: string | null;
+          auto_share_twitter?: boolean;
+          auto_share_facebook?: boolean;
           engagement_score?: number;
           created_at?: string;
           updated_at?: string;
@@ -355,6 +361,10 @@ export interface Database {
           default_seo_description: string | null;
           logo_url: string | null;
           favicon_url: string | null;
+          enable_auto_share_twitter: boolean;
+          enable_auto_share_facebook: boolean;
+          twitter_account_label: string | null;
+          facebook_page_label: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -372,6 +382,10 @@ export interface Database {
           default_seo_description?: string | null;
           logo_url?: string | null;
           favicon_url?: string | null;
+          enable_auto_share_twitter?: boolean;
+          enable_auto_share_facebook?: boolean;
+          twitter_account_label?: string | null;
+          facebook_page_label?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -389,10 +403,58 @@ export interface Database {
           default_seo_description?: string | null;
           logo_url?: string | null;
           favicon_url?: string | null;
+          enable_auto_share_twitter?: boolean;
+          enable_auto_share_facebook?: boolean;
+          twitter_account_label?: string | null;
+          facebook_page_label?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      social_posts: {
+        Row: {
+          id: string;
+          article_id: string;
+          platform: "twitter" | "facebook";
+          post_text: string;
+          post_url: string | null;
+          status: "pending" | "success" | "failed";
+          error_message: string | null;
+          created_at: string;
+          posted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          article_id: string;
+          platform: "twitter" | "facebook";
+          post_text: string;
+          post_url?: string | null;
+          status?: "pending" | "success" | "failed";
+          error_message?: string | null;
+          created_at?: string;
+          posted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          article_id?: string;
+          platform?: "twitter" | "facebook";
+          post_text?: string;
+          post_url?: string | null;
+          status?: "pending" | "success" | "failed";
+          error_message?: string | null;
+          created_at?: string;
+          posted_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       static_pages: {
         Row: {

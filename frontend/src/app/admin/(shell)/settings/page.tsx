@@ -18,6 +18,10 @@ interface SettingsForm {
   default_seo_description: string;
   logo_url: string;
   favicon_url: string;
+  enable_auto_share_twitter: boolean;
+  enable_auto_share_facebook: boolean;
+  twitter_account_label: string;
+  facebook_page_label: string;
 }
 
 const EMPTY: SettingsForm = {
@@ -33,6 +37,10 @@ const EMPTY: SettingsForm = {
   default_seo_description: "",
   logo_url: "",
   favicon_url: "",
+  enable_auto_share_twitter: false,
+  enable_auto_share_facebook: false,
+  twitter_account_label: "",
+  facebook_page_label: "",
 };
 
 const labelClass = "block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1.5";
@@ -61,13 +69,17 @@ export default function AdminSettingsPage() {
             default_seo_description: data.default_seo_description ?? "",
             logo_url: data.logo_url ?? "",
             favicon_url: data.favicon_url ?? "",
+            enable_auto_share_twitter: data.enable_auto_share_twitter ?? false,
+            enable_auto_share_facebook: data.enable_auto_share_facebook ?? false,
+            twitter_account_label: data.twitter_account_label ?? "",
+            facebook_page_label: data.facebook_page_label ?? "",
           });
         }
       })
       .finally(() => setLoading(false));
   }, []);
 
-  function set(key: keyof SettingsForm, value: string) {
+  function set(key: keyof SettingsForm, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
@@ -87,6 +99,10 @@ export default function AdminSettingsPage() {
         default_seo_description: form.default_seo_description || null,
         logo_url: form.logo_url || null,
         favicon_url: form.favicon_url || null,
+        enable_auto_share_twitter: form.enable_auto_share_twitter,
+        enable_auto_share_facebook: form.enable_auto_share_facebook,
+        twitter_account_label: form.twitter_account_label || null,
+        facebook_page_label: form.facebook_page_label || null,
       });
       await logActivity({ action: "settings_updated", description: "Paramètres du site mis à jour" });
       showToast("Paramètres enregistrés", "success");
@@ -182,7 +198,7 @@ export default function AdminSettingsPage() {
         ).map(({ key, label, placeholder }) => (
           <div key={key}>
             <label className={labelClass}>{label}</label>
-            <input value={form[key]} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className={fieldClass} />
+            <input value={form[key] as string} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className={fieldClass} />
           </div>
         ))}
       </section>
@@ -197,6 +213,84 @@ export default function AdminSettingsPage() {
         <div>
           <label className={labelClass}>Description SEO par défaut</label>
           <textarea rows={3} value={form.default_seo_description} onChange={(e) => set("default_seo_description", e.target.value)} placeholder="Restez informé avec GoldenNews7, l'actualité africaine en temps réel." className={`${fieldClass} resize-none`} />
+        </div>
+      </section>
+
+      {/* Auto-sharing */}
+      <section className="bg-gray-900 border border-white/5 rounded-xl p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Partage automatique</h2>
+            <p className="text-xs text-gray-500 mt-1">Publie automatiquement sur les réseaux lors de la publication d&apos;un article.</p>
+          </div>
+          <a
+            href="/admin/social-posts"
+            className="text-xs text-amber-400 hover:text-amber-300 font-semibold"
+          >
+            Voir les logs →
+          </a>
+        </div>
+
+        <div className="space-y-4 border-t border-white/5 pt-4">
+          {/* Twitter */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-white">Auto-partage X / Twitter</p>
+              <p className="text-xs text-gray-500">Requiert les variables X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => set("enable_auto_share_twitter", !form.enable_auto_share_twitter)}
+              className={`w-10 h-6 rounded-full transition-all shrink-0 ${form.enable_auto_share_twitter ? "bg-sky-500" : "bg-gray-700"}`}
+            >
+              <span className={`block w-4 h-4 rounded-full bg-white shadow transition-transform mx-1 ${form.enable_auto_share_twitter ? "translate-x-4" : ""}`} />
+            </button>
+          </div>
+          {form.enable_auto_share_twitter && (
+            <div>
+              <label className={labelClass}>Compte Twitter (label d&apos;affichage)</label>
+              <input
+                value={form.twitter_account_label}
+                onChange={(e) => set("twitter_account_label", e.target.value)}
+                placeholder="@GoldenNews7"
+                className={fieldClass}
+              />
+            </div>
+          )}
+
+          <div className="border-t border-white/5" />
+
+          {/* Facebook */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-white">Auto-partage Facebook</p>
+              <p className="text-xs text-gray-500">Requiert les variables FACEBOOK_PAGE_ID, FACEBOOK_PAGE_ACCESS_TOKEN</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => set("enable_auto_share_facebook", !form.enable_auto_share_facebook)}
+              className={`w-10 h-6 rounded-full transition-all shrink-0 ${form.enable_auto_share_facebook ? "bg-blue-500" : "bg-gray-700"}`}
+            >
+              <span className={`block w-4 h-4 rounded-full bg-white shadow transition-transform mx-1 ${form.enable_auto_share_facebook ? "translate-x-4" : ""}`} />
+            </button>
+          </div>
+          {form.enable_auto_share_facebook && (
+            <div>
+              <label className={labelClass}>Page Facebook (label d&apos;affichage)</label>
+              <input
+                value={form.facebook_page_label}
+                onChange={(e) => set("facebook_page_label", e.target.value)}
+                placeholder="GoldenNews7 — Page officielle"
+                className={fieldClass}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+          <p className="text-xs text-amber-400 leading-relaxed">
+            <strong>Note :</strong> Le partage s&apos;effectue uniquement lors du passage au statut <em>Publié</em>. Chaque article doit également avoir son toggle individuel activé. Les identifiants API doivent être configurés dans les variables d&apos;environnement du serveur.
+          </p>
         </div>
       </section>
 

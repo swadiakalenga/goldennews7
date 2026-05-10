@@ -47,6 +47,8 @@ interface FormState {
   socialTwitter: string;
   socialFacebook: string;
   socialTelegram: string;
+  autoShareTwitter: boolean;
+  autoShareFacebook: boolean;
 }
 
 function generateSlug(title: string): string {
@@ -93,7 +95,12 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
     socialTwitter: (article as ArticleRow & { social_twitter?: string | null })?.social_twitter ?? "",
     socialFacebook: (article as ArticleRow & { social_facebook?: string | null })?.social_facebook ?? "",
     socialTelegram: (article as ArticleRow & { social_telegram?: string | null })?.social_telegram ?? "",
+    autoShareTwitter: (article as ArticleRow & { auto_share_twitter?: boolean })?.auto_share_twitter ?? false,
+    autoShareFacebook: (article as ArticleRow & { auto_share_facebook?: boolean })?.auto_share_facebook ?? false,
   });
+
+  const [sharingTwitter, setSharingTwitter] = useState(false);
+  const [sharingFacebook, setSharingFacebook] = useState(false);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(article?.cover_image_url ?? "");
@@ -134,6 +141,42 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
     if (!form.excerpt.trim()) errs.excerpt = "L'extrait est requis.";
     setErrors(errs);
     return Object.keys(errs).length === 0;
+  }
+
+  async function triggerSocialPost(articleId: string, previousStatus: string) {
+    await fetch("/api/social/trigger", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ articleId, previousStatus }),
+    });
+  }
+
+  async function manualShare(platform: "twitter" | "facebook") {
+    if (!article) return;
+    const setSharing = platform === "twitter" ? setSharingTwitter : setSharingFacebook;
+    setSharing(true);
+    try {
+      const res = await fetch("/api/social/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articleId: article.id, force: true }),
+      });
+      const data = (await res.json()) as { results?: Array<{ platform: string; status: string; reason?: string }> };
+      const result = data.results?.find((r) => r.platform === platform);
+      if (result?.status === "success") {
+        toast(`Publié sur ${platform === "twitter" ? "X / Twitter" : "Facebook"} !`, "success");
+      } else if (result?.status === "missing_credentials") {
+        toast(`Identifiants API manquants pour ${platform === "twitter" ? "X / Twitter" : "Facebook"}.`, "error");
+      } else if (result?.status === "skipped") {
+        toast(`Déjà publié sur ${platform === "twitter" ? "X" : "Facebook"} (ou désactivé).`, "info" as "error");
+      } else {
+        toast(`Échec du partage : ${result?.reason ?? "Erreur inconnue"}`, "error");
+      }
+    } catch {
+      toast("Erreur réseau lors du partage.", "error");
+    } finally {
+      setSharing(false);
+    }
   }
 
   function generateSocialSnippets() {
@@ -191,15 +234,30 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
         social_twitter: form.socialTwitter.trim() || null,
         social_facebook: form.socialFacebook.trim() || null,
         social_telegram: form.socialTelegram.trim() || null,
+        auto_share_twitter: form.autoShareTwitter,
+        auto_share_facebook: form.autoShareFacebook,
       };
+
+      const previousStatus = article?.status ?? "draft";
 
       if (isEdit && article) {
         await updateArticle(article.id, payload);
         toast("Article mis à jour.", "success");
+
+        // Trigger social posting on publish transition
+        if (effectiveStatus === "published" && previousStatus !== "published") {
+          triggerSocialPost(article.id, previousStatus).catch(() => {/* non-blocking */});
+        }
+
         router.refresh();
       } else {
         const created = await createArticle(payload);
         toast("Article créé.", "success");
+
+        if (effectiveStatus === "published") {
+          triggerSocialPost(created.id, "draft").catch(() => {/* non-blocking */});
+        }
+
         router.push(`/admin/articles/${created.id}`);
       }
     } catch (err: unknown) {
@@ -444,7 +502,7 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
             />
           </div>
 
-          {/* Social snippets */}
+          {/* Social snippets + auto-share */}
           <div className="bg-gray-900 border border-white/5 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -459,39 +517,96 @@ export default function ArticleForm({ article, categories, authors }: ArticleFor
                 ✨ Générer
               </button>
             </div>
+
+            {/* Auto-share toggles */}
+            <div className="space-y-3 mb-4 p-3 bg-white/3 rounded-lg border border-white/5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Auto-partage à la publication</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-300 font-semibold">𝕏 Twitter / X</span>
+                <button
+                  type="button"
+                  onClick={() => set("autoShareTwitter", !form.autoShareTwitter)}
+                  className={`w-8 h-5 rounded-full transition-all ${form.autoShareTwitter ? "bg-sky-500" : "bg-gray-700"}`}
+                >
+                  <span className={`block w-3 h-3 rounded-full bg-white shadow transition-transform mx-1 ${form.autoShareTwitter ? "translate-x-3" : ""}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-300 font-semibold">Facebook</span>
+                <button
+                  type="button"
+                  onClick={() => set("autoShareFacebook", !form.autoShareFacebook)}
+                  className={`w-8 h-5 rounded-full transition-all ${form.autoShareFacebook ? "bg-blue-500" : "bg-gray-700"}`}
+                >
+                  <span className={`block w-3 h-3 rounded-full bg-white shadow transition-transform mx-1 ${form.autoShareFacebook ? "translate-x-3" : ""}`} />
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-600">Partage automatique au premier passage en &quot;Publié&quot;. L&apos;auto-partage global doit aussi être activé dans les Paramètres.</p>
+            </div>
+
+            {/* Text fields */}
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Twitter / X</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Texte pour X / Twitter</label>
                 <textarea
                   value={form.socialTwitter}
                   onChange={(e) => set("socialTwitter", e.target.value)}
                   rows={3}
-                  placeholder="Tweet à copier…"
+                  placeholder="Tweet à publier…"
                   className={`${fieldClass()} text-xs`}
                 />
-                <p className="text-xs text-gray-600 mt-0.5">{form.socialTwitter.length}/280</p>
+                <div className="flex items-center justify-between mt-0.5">
+                  <p className={`text-xs ${form.socialTwitter.length > 260 ? "text-amber-400" : "text-gray-600"}`}>
+                    {form.socialTwitter.length}/260 (URL ajoutée automatiquement)
+                  </p>
+                </div>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Facebook</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Texte pour Facebook</label>
                 <textarea
                   value={form.socialFacebook}
                   onChange={(e) => set("socialFacebook", e.target.value)}
                   rows={3}
-                  placeholder="Post Facebook à copier…"
+                  placeholder="Post Facebook à publier…"
                   className={`${fieldClass()} text-xs`}
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Telegram</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 block">Telegram (copier-coller)</label>
                 <textarea
                   value={form.socialTelegram}
                   onChange={(e) => set("socialTelegram", e.target.value)}
                   rows={2}
-                  placeholder="Message Telegram à copier…"
+                  placeholder="Message Telegram…"
                   className={`${fieldClass()} text-xs`}
                 />
               </div>
             </div>
+
+            {/* Manual repost — only for published articles */}
+            {isEdit && article?.status === "published" && (
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Republier manuellement</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => manualShare("twitter")}
+                    disabled={sharingTwitter}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 disabled:opacity-40 text-sky-400 text-xs font-bold rounded-lg border border-sky-500/20 transition-colors"
+                  >
+                    {sharingTwitter ? "…" : "𝕏 Partager sur X"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => manualShare("facebook")}
+                    disabled={sharingFacebook}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 disabled:opacity-40 text-blue-400 text-xs font-bold rounded-lg border border-blue-500/20 transition-colors"
+                  >
+                    {sharingFacebook ? "…" : "f Partager sur Facebook"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Live updates panel (edit mode only) */}
